@@ -71,6 +71,8 @@
   .dtable tr:last-child td{border-bottom:none}
   .tbtn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 12px;font-family:var(--mono);font-size:.72rem;cursor:pointer}
   .tbtn:hover{border-color:var(--accent);color:var(--accent)}
+  .range-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:4px 12px;font-family:var(--mono);font-size:.72rem;cursor:pointer;transition:all .2s}
+  .range-btn:hover,.range-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
   @media(max-width:768px){.grid-3{grid-template-columns:1fr}.stats-row{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -122,9 +124,27 @@
       <input type="number" id="dailyHours" value="8.5" step="0.5" min="1" max="24" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;">
     </div>
   </div>
-  <div class="grid-3" style="margin-bottom:1rem">
-    <div><span class="field-label">Fecha inicio</span><input type="date" id="dateFrom" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;"></div>
-    <div><span class="field-label">Fecha fin</span><input type="date" id="dateTo" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;"></div>
+  <div class="grid-3" style="margin-bottom:1rem;align-items:end;">
+    <div>
+      <span class="field-label">Rango de fechas</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div style="position:relative;flex:1">
+          <input type="date" id="dateFrom" onclick="this.showPicker()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;">
+        </div>
+        <span style="color:var(--muted);font-size:.85rem">→</span>
+        <div style="position:relative;flex:1">
+          <input type="date" id="dateTo" onclick="this.showPicker()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;">
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        <button onclick="setRange('thisMonth')" class="range-btn" id="rb-thisMonth">Este mes</button>
+        <button onclick="setRange('lastMonth')" class="range-btn" id="rb-lastMonth">Mes anterior</button>
+        <button onclick="setRange('thisWeek')" class="range-btn" id="rb-thisWeek">Esta semana</button>
+        <button onclick="setRange('lastWeek')" class="range-btn" id="rb-lastWeek">Semana anterior</button>
+        <button onclick="setRange('last30')" class="range-btn" id="rb-last30">Últimos 30 días</button>
+      </div>
+    </div>
+    <div></div>
     <div style="display:flex;align-items:flex-end">
       <button class="btn" onclick="run()" style="width:100%">▶ Generar informe</button>
     </div>
@@ -139,12 +159,8 @@
     <div class="stat-card"><div class="stat-value" id="s3" style="color:var(--yellow)">—</div><div class="stat-label">Issues</div></div>
     <div class="stat-card"><div class="stat-value" id="s4" style="color:var(--accent)">—</div><div class="stat-label">Cumplimiento</div></div>
   </div>
-  <div class="card" style="padding:0;overflow:hidden">
-    <div style="padding:1.2rem 1.5rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-      <div class="stitle">📋 Resumen por persona</div>
-      <button class="btn btn-sec" onclick="exportCSV()" style="padding:8px 16px;font-size:.8rem">⬇ Exportar CSV</button>
-    </div>
-    <div class="twrap"><table><thead><tr><th>Persona</th><th>Días</th><th>Horas</th><th>Media/día</th><th>Progreso</th><th>Estado</th></tr></thead><tbody id="tbody"></tbody></table></div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+    <button class="btn btn-sec" onclick="exportCSV()" style="padding:8px 16px;font-size:.8rem">⬇ Exportar CSV</button>
   </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
@@ -245,6 +261,34 @@ document.addEventListener('click',e=>{
 initProjs();
 initGroups();
 // Nothing selected by default — user picks manually
+
+function setRange(type){
+  const now=new Date();
+  let from,to;
+  document.querySelectorAll('.range-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('rb-'+type)?.classList.add('active');
+  if(type==='thisMonth'){
+    from=new Date(now.getFullYear(),now.getMonth(),1);
+    to=new Date(now.getFullYear(),now.getMonth()+1,0);
+  } else if(type==='lastMonth'){
+    from=new Date(now.getFullYear(),now.getMonth()-1,1);
+    to=new Date(now.getFullYear(),now.getMonth(),0);
+  } else if(type==='thisWeek'){
+    const day=now.getDay()||7;
+    from=new Date(now);from.setDate(now.getDate()-day+1);
+    to=new Date(from);to.setDate(from.getDate()+6);
+  } else if(type==='lastWeek'){
+    const day=now.getDay()||7;
+    from=new Date(now);from.setDate(now.getDate()-day-6);
+    to=new Date(now);to.setDate(now.getDate()-day);
+  } else if(type==='last30'){
+    from=new Date(now);from.setDate(now.getDate()-29);
+    to=new Date(now);
+  }
+  const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  document.getElementById('dateFrom').value=fmt(from);
+  document.getElementById('dateTo').value=fmt(to);
+}
 
 function ss(msg,t){const e=document.getElementById('status');e.textContent=msg;e.className=t}
 function sH(s){return(s/3600).toFixed(1)+'h'}
