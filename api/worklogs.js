@@ -17,16 +17,39 @@ export default async function handler(req, res) {
     'Content-Type': 'application/json'
   };
 
-  const { action, project, dateFrom, dateTo, issueKey } = req.query;
+  const { action, project, dateFrom, dateTo, issueKey, groups } = req.query;
 
   try {
-    if (action === 'search') {
-      const projects = project.split(',').map(p => p.trim());
-      const jql = projects.length === 1
-        ? `project = "${projects[0]}" AND worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}"`
-        : `project in (${projects.map(p=>`"${p}"`).join(', ')}) AND worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}"`;
+    // Load Jira groups
+    if (action === 'groups') {
+      const url = `${JIRA_URL}/rest/api/3/groups/picker?maxResults=50`;
+      const r = await fetch(url, { headers });
+      const data = await r.json();
+      return res.status(200).json({ groups: data.groups || [] });
+    }
 
+    if (action === 'search') {
       const startAt = parseInt(req.query.startAt || '0');
+      let jqlParts = [];
+
+      // Project filter
+      if (project) {
+        const projects = project.split(',').map(p => p.trim()).filter(Boolean);
+        if (projects.length === 1) jqlParts.push(`project = "${projects[0]}"`);
+        else if (projects.length > 1) jqlParts.push(`project in (${projects.map(p=>`"${p}"`).join(', ')})`);
+      }
+
+      // Group/team filter
+      if (groups) {
+        const groupList = groups.split(',').map(g => g.trim()).filter(Boolean);
+        if (groupList.length === 1) jqlParts.push(`assignee in membersOf("${groupList[0]}")`);
+        else if (groupList.length > 1) jqlParts.push(`assignee in membersOf("${groupList[0]}")${groupList.slice(1).map(g=>` OR assignee in membersOf("${g}")`).join('')}`);
+      }
+
+      // Date filter
+      jqlParts.push(`worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}"`);
+
+      const jql = jqlParts.join(' AND ');
       const url = `${JIRA_URL}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&startAt=${startAt}&maxResults=100&fields=summary,worklog`;
       const r = await fetch(url, { headers });
       const data = await r.json();
@@ -46,4 +69,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
-
