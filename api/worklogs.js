@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     // Personal worklog view - get all worklogs for a specific user
     if (action === 'personal') {
       const { user, dateFrom, dateTo } = req.query;
-      const jql = `worklogAuthor = "${user}" AND worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}"`;  // user is accountId
+      const jql = `worklogAuthor = "${user}" AND worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}"`;
       let allWorklogs = [];
       let startAt = 0;
 
@@ -75,8 +75,8 @@ export default async function handler(req, res) {
             if(wlDate < dateFrom || wlDate > dateTo) continue;
             const authorEmail = wl.author?.emailAddress || '';
             const authorName = wl.author?.displayName || '';
-            const authorId = wl.author?.accountId || '';
-            if(authorId !== user) continue;
+            const authorEmail = (wl.author?.emailAddress || '').toLowerCase();
+            if(authorEmail !== user.toLowerCase()) continue;
             allWorklogs.push({
               issueKey: issue.key,
               issueSummary: issue.fields.summary,
