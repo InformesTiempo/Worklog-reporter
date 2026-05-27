@@ -117,9 +117,11 @@ export default async function handler(req, res) {
       jqlParts.push(`worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}"`);
 
       const jql = jqlParts.join(' AND ');
+      console.log('JQL:', jql);
       const url = `${JIRA_URL}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&startAt=${startAt}&maxResults=100&fields=summary,worklog`;
       const r = await fetch(url, { headers });
       const data = await r.json();
+      if(!r.ok) console.log('Jira error:', JSON.stringify(data));
       return res.status(r.status).json(data);
     }
 
