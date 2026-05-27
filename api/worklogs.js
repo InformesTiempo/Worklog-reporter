@@ -39,11 +39,15 @@ export default async function handler(req, res) {
         else if (projects.length > 1) jqlParts.push(`project in (${projects.map(p=>`"${p}"`).join(', ')})`);
       }
 
-      // Group/team filter
+      // Group/team filter — filter by worklog author belonging to group
       if (groups) {
         const groupList = groups.split(',').map(g => g.trim()).filter(Boolean);
-        if (groupList.length === 1) jqlParts.push(`assignee in membersOf("${groupList[0]}")`);
-        else if (groupList.length > 1) jqlParts.push(`assignee in membersOf("${groupList[0]}")${groupList.slice(1).map(g=>` OR assignee in membersOf("${g}")`).join('')}`);
+        if (groupList.length === 1) {
+          jqlParts.push(`worklogAuthor in membersOf("${groupList[0]}")`);
+        } else if (groupList.length > 1) {
+          const groupJql = groupList.map(g => `worklogAuthor in membersOf("${g}")`).join(' OR ');
+          jqlParts.push(`(${groupJql})`);
+        }
       }
 
       // Date filter
