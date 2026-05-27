@@ -489,8 +489,8 @@ function getPersonalToken(){
 }
 
 function parseTime(str){
-  // Convert "8h 30m", "1.5h", "45m", "8h" to seconds
-  str = str.trim().toLowerCase();
+  // Convert "8h 30m", "1.5h", "1,5h", "45m", "8h", "3,5" to seconds
+  str = str.trim().toLowerCase().replace(',', '.'); // support comma as decimal
   let secs = 0;
   const hMatch = str.match(/(\d+\.?\d*)h/);
   const mMatch = str.match(/(\d+)m/);
