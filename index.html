@@ -533,13 +533,15 @@ async function run(){
   document.getElementById('results').style.display='none';
 
   try{
-    let issues=[],start=0;
+    let issues=[],start=0,groupMemberIds=null;
     while(true){
       const params={action:'search',dateFrom:df,dateTo:dt,startAt:start};
       if(projs.length) params.project=projs.join(',');
       if(selectedGroups.size) params.groups=[...selectedGroups].join(',');
       const d=await apiCall(params);
       issues=issues.concat(d.issues||[]);
+      // Collect group member ids from first response
+      if(start===0 && d._groupMemberIds) groupMemberIds=new Set(d._groupMemberIds);
       ss(`⏳ Cargando issues... ${issues.length}`, 'loading');
       if(d.isLast||!d.nextPageToken||(d.issues||[]).length<100)break;
       start+=100;
@@ -557,6 +559,8 @@ async function run(){
       let hit=false;
       for(const wl of wls){
         const wd2=new Date(wl.started.split('T')[0]);if(wd2<dfrom||wd2>dto)continue;
+        // Filter by group members if a group was selected
+        if(groupMemberIds && !groupMemberIds.has(wl.author?.accountId)) continue;
         const name=wl.author?.displayName||wl.author?.emailAddress||'Desconocido';
         const ds=wl.started.split('T')[0];const secs=wl.timeSpentSeconds||0;
         if(!pm[name])pm[name]={secs:0,days:new Set(),issues:new Set()};
