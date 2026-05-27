@@ -73,8 +73,8 @@ export default async function handler(req, res) {
           for(const wl of wls) {
             const wlDate = wl.started.split('T')[0];
             if(wlDate < dateFrom || wlDate > dateTo) continue;
-            const authorEmail = (wl.author?.emailAddress || '').toLowerCase();
-            if(authorEmail !== user.toLowerCase()) continue;
+            const authorAccountId = wl.author?.accountId || '';
+            if(authorAccountId !== accountId) continue;
             allWorklogs.push({
               issueKey: issue.key,
               issueSummary: issue.fields.summary,
