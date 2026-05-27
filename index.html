@@ -234,13 +234,13 @@
     <div>
       <span class="field-label">Proyectos <span style="font-size:.7rem;color:var(--muted)">(opcional, vacío = todos)</span></span>
       <div style="position:relative">
-        <div id="projSelector" onclick="toggleProjs()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+        <div id="projSelector" id="projSelectorBtn" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
           <span id="projLabel" style="color:var(--muted)">Todos los proyectos</span>
           <span>▾</span>
         </div>
         <div id="projDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-top:4px;z-index:100;max-height:220px;overflow-y:auto;">
           <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border);background:var(--surface2);">
-            <input type="checkbox" id="proj-all" onchange="toggleAllProjs(this)" style="accent-color:var(--accent)"> Todos los proyectos
+            <input type="checkbox" id="proj-all" id="projAllChk" style="accent-color:var(--accent)"> Todos los proyectos
           </label>
           <div id="projList"></div>
         </div>
@@ -249,13 +249,13 @@
     <div>
       <span class="field-label">Equipo <span style="font-size:.7rem;color:var(--muted)">(opcional)</span></span>
       <div style="position:relative">
-        <div id="groupSelector" onclick="toggleGroups()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+        <div id="groupSelector" id="groupSelectorBtn" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
           <span id="groupLabel" style="color:var(--muted)">Todos los equipos</span>
           <span>▾</span>
         </div>
         <div id="groupDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-top:4px;z-index:100;max-height:220px;overflow-y:auto;">
           <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border);background:var(--surface2);">
-            <input type="checkbox" id="grp-all" onchange="toggleAllGroups(this)" style="accent-color:var(--accent)"> Todos los equipos
+            <input type="checkbox" id="grp-all" id="grpAllChk" style="accent-color:var(--accent)"> Todos los equipos
           </label>
           <div id="groupList"></div>
         </div>
@@ -497,7 +497,6 @@ function exportPersonalCSV(){
 }
 
 // ── Imputar (log work) ─────────────────────────
-let logUserEmail = getCookie('jira_email') || '';
 
 function saveToken(){
   const t = document.getElementById('personalToken').value.trim();
@@ -847,6 +846,8 @@ function initProjs(){
       <span style="font-family:var(--mono)">${p}</span>
     </label>
   `).join('');
+  document.getElementById('projSelectorBtn')?.addEventListener('click', toggleProjs);
+  document.getElementById('projAllChk')?.addEventListener('change', function(){toggleAllProjs(this);});
 }
 
 function toggleProjs(){
@@ -879,6 +880,8 @@ function initGroups(){
       <span>${g}</span>
     </label>
   `).join('');
+  document.getElementById('groupSelectorBtn')?.addEventListener('click', toggleGroups);
+  document.getElementById('grpAllChk')?.addEventListener('change', function(){toggleAllGroups(this);});
 }
 
 function toggleGroups(){
