@@ -164,6 +164,27 @@ export default async function handler(req, res) {
       return res.status(r.status).json(data);
     }
 
+    // ── Find issue by key or text ────────────────────────────
+    if (action === 'findIssue') {
+      const q = req.query.q || '';
+      const isKey = /^[A-Z]+-\d+$/i.test(q.trim());
+      if (isKey) {
+        const url = `${JIRA_URL}/rest/api/3/issue/${q.toUpperCase()}?fields=summary`;
+        const r = await fetch(url, { headers });
+        if (!r.ok) return res.status(404).json({ error: 'Issue no encontrado' });
+        const d = await r.json();
+        return res.status(200).json({ key: d.key, summary: d.fields.summary });
+      } else {
+        const jql = encodeURIComponent(`summary ~ "${q}" ORDER BY updated DESC`);
+        const url = `${JIRA_URL}/rest/api/3/search/jql?jql=${jql}&maxResults=5&fields=summary`;
+        const r = await fetch(url, { headers });
+        if (!r.ok) return res.status(404).json({ error: 'Error en la búsqueda' });
+        const d = await r.json();
+        if (!d.issues?.length) return res.status(404).json({ error: 'No se encontraron issues' });
+        return res.status(200).json({ key: d.issues[0].key, summary: d.issues[0].fields.summary });
+      }
+    }
+
     return res.status(400).json({ error: 'Acción no válida' });
 
   } catch (err) {
