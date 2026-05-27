@@ -157,9 +157,9 @@ async function run(){
     let issues=[],start=0;
     while(true){
       const d=await apiCall({action:'search',project:projs.join(','),dateFrom:df,dateTo:dt,startAt:start});
-      issues=issues.concat(d.issues);
-      ss(`⏳ Cargando issues... (${issues.length}/${d.total})`, 'loading');
-      if(issues.length>=d.total)break;
+      issues=issues.concat(d.issues||[]);
+      ss(`⏳ Cargando issues... ${issues.length}`, 'loading');
+      if(d.isLast||!d.nextPageToken||(d.issues||[]).length<100)break;
       start+=100;
     }
 
@@ -246,4 +246,3 @@ function exportCSV(){
 </script>
 </body>
 </html>
-
