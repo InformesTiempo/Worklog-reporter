@@ -90,6 +90,7 @@
 <div style="display:flex;gap:4px;margin-bottom:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;">
   <button id="tab-personal" onclick="switchTab('personal')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;transition:all .2s;">👤 Mi Tiempo</button>
   <button id="tab-manager" onclick="switchTab('manager')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:transparent;color:var(--muted);transition:all .2s;">📊 Managers</button>
+  <button id="tab-imputar" onclick="switchTab('imputar')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:transparent;color:var(--muted);transition:all .2s;">⏱ Imputar</button>
 </div>
 
 <!-- Personal Tab -->
@@ -136,6 +137,64 @@
       </div>
       <div style="overflow-x:auto;"><table id="pTable" class="daily-table" style="width:100%;border-collapse:collapse;font-size:.82rem;"></table></div>
     </div>
+  </div>
+</div>
+
+<!-- Imputar Tab -->
+<div id="pane-imputar" style="display:none;">
+  <div class="card">
+    <div class="card-title">⏱ Registrar tiempo en Jira</div>
+
+    <!-- Token config -->
+    <div id="token-setup" style="margin-bottom:1.5rem;padding:1rem;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-family:var(--mono);font-size:.8rem;color:var(--muted);">🔑 Tu acceso a Jira</span>
+        <span id="token-status" style="font-size:.75rem;font-family:var(--mono);color:var(--muted);">No configurado</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:center;">
+        <input type="email" id="logEmail" placeholder="tu@educamos.com" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;">
+        <input type="password" id="personalToken" placeholder="Tu API token de Jira" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;">
+        <button onclick="saveToken()" class="btn" style="padding:8px 16px;font-size:.82rem;">Guardar</button>
+        <button onclick="clearToken()" class="btn btn-sec" style="padding:8px 16px;font-size:.82rem;">Borrar</button>
+      </div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:6px;">
+        Genera tu token en <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" style="color:var(--accent);">id.atlassian.com</a> — se guarda solo en tu navegador
+      </div>
+    </div>
+
+    <!-- Log work form -->
+    <div class="grid-3" style="margin-bottom:1rem;">
+      <div>
+        <span class="field-label">Issue</span>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="issueSearch" placeholder="TES3-42372 o buscar..." style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;" onkeydown="if(event.key==='Enter')searchIssue()">
+          <button onclick="searchIssue()" class="btn btn-sec" style="padding:10px 14px;font-size:.85rem;">🔍</button>
+        </div>
+        <div id="issueResult" style="margin-top:6px;font-size:.8rem;color:var(--muted);font-family:var(--mono);"></div>
+      </div>
+      <div>
+        <span class="field-label">Fecha</span>
+        <input type="date" id="logDate" onclick="try{this.showPicker()}catch(e){}" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;">
+      </div>
+      <div>
+        <span class="field-label">Tiempo <span style="font-size:.7rem;color:var(--muted)">(ej: 8h 30m, 1.5h, 45m)</span></span>
+        <input type="text" id="logTime" placeholder="8h 30m" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;">
+      </div>
+    </div>
+    <div style="margin-bottom:1rem;">
+      <span class="field-label">Comentario (opcional)</span>
+      <input type="text" id="logComment" placeholder="Descripción del trabajo realizado..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--sans);font-size:.85rem;outline:none;">
+    </div>
+    <div style="display:flex;gap:1rem;align-items:center;">
+      <button class="btn" onclick="logWork()" style="padding:12px 28px;">⏱ Registrar tiempo</button>
+      <div id="logStatus" style="font-family:var(--mono);font-size:.8rem;display:none;padding:8px 16px;border-radius:6px;"></div>
+    </div>
+  </div>
+
+  <!-- Recent logs -->
+  <div class="card" id="recentLogs" style="display:none;">
+    <div class="card-title">✅ Últimas imputaciones registradas</div>
+    <div id="recentLogsList"></div>
   </div>
 </div>
 
@@ -234,12 +293,15 @@
 <script>
 // ── Tab switching ──────────────────────────────
 function switchTab(tab){
-  document.getElementById('pane-personal').style.display = tab==='personal'?'block':'none';
-  document.getElementById('pane-manager').style.display = tab==='manager'?'block':'none';
-  document.getElementById('tab-personal').style.background = tab==='personal'?'linear-gradient(135deg,var(--accent),var(--accent2))':'transparent';
-  document.getElementById('tab-personal').style.color = tab==='personal'?'#fff':'var(--muted)';
-  document.getElementById('tab-manager').style.background = tab==='manager'?'linear-gradient(135deg,var(--accent),var(--accent2))':'transparent';
-  document.getElementById('tab-manager').style.color = tab==='manager'?'#fff':'var(--muted)';
+  ['personal','manager','imputar'].forEach(t=>{
+    document.getElementById('pane-'+t).style.display = tab===t?'block':'none';
+    const btn = document.getElementById('tab-'+t);
+    if(btn){
+      btn.style.background = tab===t?'linear-gradient(135deg,var(--accent),var(--accent2))':'transparent';
+      btn.style.color = tab===t?'#fff':'var(--muted)';
+    }
+  });
+  if(tab==='imputar') checkTokenStatus();
 }
 
 // Move manager content on load
@@ -383,6 +445,189 @@ function exportPersonalCSV(){
   const rows=[...table.querySelectorAll('tr')].map(r=>[...r.querySelectorAll('th,td')].map(c=>c.textContent.trim()).join(','));
   const blob=new Blob([rows.join('\n')],{type:'text/csv'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mis-horas.csv';a.click();
+}
+
+// ── Imputar (log work) ─────────────────────────
+let logUserEmail = localStorage.getItem('jira_log_email') || '';
+
+function saveToken(){
+  const t = document.getElementById('personalToken').value.trim();
+  const e = document.getElementById('logEmail').value.trim();
+  if(!t||!e){alert('Introduce tu email y token');return;}
+  localStorage.setItem('jira_personal_token', t);
+  localStorage.setItem('jira_log_email', e);
+  logUserEmail = e;
+  document.getElementById('personalToken').value='';
+  checkTokenStatus();
+  alert('Credenciales guardadas en tu navegador ✓');
+}
+
+function clearToken(){
+  localStorage.removeItem('jira_personal_token');
+  localStorage.removeItem('jira_log_email');
+  logUserEmail = '';
+  checkTokenStatus();
+}
+
+function checkTokenStatus(){
+  const t = localStorage.getItem('jira_personal_token');
+  const e = localStorage.getItem('jira_log_email');
+  const el = document.getElementById('token-status');
+  if(t && e){
+    el.textContent = '✓ Configurado como ' + e;
+    el.style.color = 'var(--green)';
+    document.getElementById('logEmail').value = e;
+    logUserEmail = e;
+  } else {
+    el.textContent = 'No configurado';
+    el.style.color = 'var(--muted)';
+  }
+}
+
+function getPersonalToken(){
+  return localStorage.getItem('jira_personal_token');
+}
+
+function parseTime(str){
+  // Convert "8h 30m", "1.5h", "45m", "8h" to seconds
+  str = str.trim().toLowerCase();
+  let secs = 0;
+  const hMatch = str.match(/(\d+\.?\d*)h/);
+  const mMatch = str.match(/(\d+)m/);
+  if(hMatch) secs += parseFloat(hMatch[1]) * 3600;
+  if(mMatch) secs += parseInt(mMatch[1]) * 60;
+  if(!hMatch && !mMatch) {
+    // Try plain number as hours
+    const n = parseFloat(str);
+    if(!isNaN(n)) secs = n * 3600;
+  }
+  return Math.round(secs);
+}
+
+let selectedIssueKey = null;
+
+async function searchIssue(){
+  const token = getPersonalToken();
+  if(!token){
+    document.getElementById('issueResult').textContent = '⚠ Configura tu token primero';
+    document.getElementById('issueResult').style.color = 'var(--red)';
+    return;
+  }
+  const q = document.getElementById('issueSearch').value.trim();
+  if(!q) return;
+
+  document.getElementById('issueResult').textContent = 'Buscando...';
+  document.getElementById('issueResult').style.color = 'var(--muted)';
+
+  const auth = btoa((logUserEmail||'') + ':' + token);
+
+  // If it looks like an issue key, fetch directly
+  const isKey = /^[A-Z]+-\d+$/i.test(q);
+  try {
+    let issueKey, summary;
+    if(isKey){
+      const r = await fetch(`https://7education.atlassian.net/rest/api/3/issue/${q.toUpperCase()}?fields=summary`, {
+        headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' }
+      });
+      if(!r.ok) throw new Error('Issue no encontrado');
+      const d = await r.json();
+      issueKey = d.key;
+      summary = d.fields.summary;
+    } else {
+      const jql = encodeURIComponent(`summary ~ "${q}" ORDER BY updated DESC`);
+      const r = await fetch(`https://7education.atlassian.net/rest/api/3/search/jql?jql=${jql}&maxResults=5&fields=summary`, {
+        headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' }
+      });
+      if(!r.ok) throw new Error('Error en la búsqueda');
+      const d = await r.json();
+      if(!d.issues?.length) throw new Error('No se encontraron issues');
+      issueKey = d.issues[0].key;
+      summary = d.issues[0].fields.summary;
+    }
+    selectedIssueKey = issueKey;
+    document.getElementById('issueResult').innerHTML = `<span style="color:var(--accent)">${issueKey}</span> — ${summary}`;
+    document.getElementById('issueResult').style.color = 'var(--text)';
+  } catch(e) {
+    document.getElementById('issueResult').textContent = '✗ ' + e.message;
+    document.getElementById('issueResult').style.color = 'var(--red)';
+    selectedIssueKey = null;
+  }
+}
+
+async function logWork(){
+  const token = getPersonalToken();
+  if(!token){ssLog('⚠ Configura tu token primero','error');return;}
+  if(!selectedIssueKey){ssLog('⚠ Busca y selecciona un issue primero','error');return;}
+
+  const timeStr = document.getElementById('logTime').value.trim();
+  const date = document.getElementById('logDate').value;
+  const comment = document.getElementById('logComment').value.trim();
+
+  if(!timeStr){ssLog('⚠ Introduce el tiempo a registrar','error');return;}
+  if(!date){ssLog('⚠ Selecciona una fecha','error');return;}
+
+  const secs = parseTime(timeStr);
+  if(secs < 60){ssLog('⚠ El tiempo mínimo es 1 minuto','error');return;}
+
+  ssLog('⏳ Registrando...','loading');
+
+  const auth = btoa((logUserEmail||'') + ':' + token);
+  const body = {
+    timeSpentSeconds: secs,
+    started: date + 'T09:00:00.000+0000'
+  };
+  if(comment) body.comment = {
+    type: 'doc', version: 1,
+    content: [{ type: 'paragraph', content: [{ type: 'text', text: comment }] }]
+  };
+
+  try {
+    const r = await fetch(`https://7education.atlassian.net/rest/api/3/issue/${selectedIssueKey}/worklog`, {
+      method: 'POST',
+      headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if(!r.ok){
+      const e = await r.json();
+      throw new Error(e.errorMessages?.[0] || `Error ${r.status}`);
+    }
+    const data = await r.json();
+    ssLog(`✓ ${timeStr} registrado en ${selectedIssueKey}`, 'success');
+
+    // Add to recent logs
+    addRecentLog(selectedIssueKey, timeStr, date, comment);
+
+    // Clear form
+    document.getElementById('logTime').value='';
+    document.getElementById('logComment').value='';
+
+  } catch(e){
+    ssLog('✗ ' + e.message, 'error');
+  }
+}
+
+function ssLog(msg, type){
+  const el = document.getElementById('logStatus');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.background = 'var(--surface2)';
+  el.style.color = type==='error'?'var(--red)':type==='loading'?'var(--accent)':'var(--green)';
+}
+
+const recentLogs = [];
+function addRecentLog(issue, time, date, comment){
+  recentLogs.unshift({issue, time, date, comment});
+  const el = document.getElementById('recentLogs');
+  const list = document.getElementById('recentLogsList');
+  el.style.display = 'block';
+  list.innerHTML = recentLogs.slice(0,5).map(l=>`
+    <div style="display:flex;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.85rem;">
+      <span style="font-family:var(--mono);color:var(--accent)">${l.issue}</span>
+      <span style="font-family:var(--mono);color:var(--green)">${l.time}</span>
+      <span style="color:var(--muted)">${l.date}</span>
+      ${l.comment?`<span style="color:var(--text)">${l.comment}</span>`:''}
+    </div>
+  `).join('');
 }
 
 // ── Date init ───────────────────────────────────
