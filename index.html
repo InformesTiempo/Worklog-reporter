@@ -376,16 +376,7 @@ function renderStats(d,ti){
 }
 
 function renderTable(data,dh){
-  const tb=document.getElementById('tbody');
-  if(!data.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted)">Sin worklogs en este período</td></tr>';return;}
-  tb.innerHTML=data.map(r=>{
-    const avg=r.avg/3600,ratio=avg/dh;
-    let pc='pg',lbl='✓ Cumple';
-    if(ratio<0.5){pc='pr';lbl='✗ Bajo';}else if(ratio<0.85){pc='py';lbl='~ Parcial';}
-    const bp=Math.min(r.pct,100),bc=r.pct>=85?'var(--green)':r.pct>=50?'var(--yellow)':'var(--red)';
-    const col=hc(r.name);
-    return`<tr><td><div class="pcell"><div class="avatar" style="background:${col}">${ini(r.name)}</div><div><div style="font-weight:600">${r.name}</div><div style="font-size:.72rem;color:var(--muted)">${r.issues} issues</div></div></div></td><td class="hm">${r.days}</td><td class="hm">${sH(r.secs)}</td><td class="hm">${avg.toFixed(1)}h</td><td style="min-width:140px"><div style="font-size:.75rem;color:var(--muted);margin-bottom:3px">${r.pct}% del objetivo</div><div class="pbar"><div class="pfill" style="width:${bp}%;background:${bc}"></div></div></td><td><span class="pill ${pc}">${lbl}</span></td></tr>`;
-  }).join('');
+  // Table removed — data shown in daily grid only
 }
 
 function renderDaily(dm,dtgt){
