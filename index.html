@@ -489,19 +489,33 @@ function getPersonalToken(){
 }
 
 function parseTime(str){
-  // Convert "8h 30m", "1.5h", "1,5h", "45m", "8h", "3,5" to seconds
-  str = str.trim().toLowerCase().replace(',', '.'); // support comma as decimal
+  // Accepts: "8h 30m", "1h30m", "1.5h", "1,5h", "45m", "8h", "3.5", "3,5"
+  // NOTE: "1,30" is ambiguous — treated as 1h 30m (Spanish notation)
+  str = str.trim().toLowerCase();
   let secs = 0;
-  const hMatch = str.match(/(\d+\.?\d*)h/);
+
+  // If contains 'h' or 'm' — parse normally
+  const hMatch = str.match(/(\d+[.,]?\d*)h/);
   const mMatch = str.match(/(\d+)m/);
-  if(hMatch) secs += parseFloat(hMatch[1]) * 3600;
-  if(mMatch) secs += parseInt(mMatch[1]) * 60;
-  if(!hMatch && !mMatch) {
-    // Try plain number as hours
-    const n = parseFloat(str);
-    if(!isNaN(n)) secs = n * 3600;
+
+  if(hMatch || mMatch) {
+    if(hMatch) secs += parseFloat(hMatch[1].replace(',','.')) * 3600;
+    if(mMatch) secs += parseInt(mMatch[1]) * 60;
+    return Math.round(secs);
   }
-  return Math.round(secs);
+
+  // No h/m — try to interpret as hours
+  // If has comma/dot: treat as decimal hours (3,5 = 3.5h = 3h30m)
+  if(str.includes(',') || str.includes('.')) {
+    const n = parseFloat(str.replace(',','.'));
+    if(!isNaN(n)) return Math.round(n * 3600);
+  }
+
+  // Plain integer — treat as hours
+  const n = parseInt(str);
+  if(!isNaN(n)) return n * 3600;
+
+  return 0;
 }
 
 let selectedIssueKey = null;
