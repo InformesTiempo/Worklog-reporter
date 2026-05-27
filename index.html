@@ -105,9 +105,9 @@
       <div>
         <span class="field-label">Rango de fechas</span>
         <div style="display:flex;gap:8px;align-items:center;">
-          <input type="date" id="pDateFrom" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;">
+          <input type="date" id="pDateFrom" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;" min="2020-01-01">
           <span style="color:var(--muted)">→</span>
-          <input type="date" id="pDateTo" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;">
+          <input type="date" id="pDateTo" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;" min="2020-01-01">
         </div>
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
           <button onclick="setRangeP('thisMonth')" class="range-btn">Este mes</button>
@@ -188,11 +188,11 @@
       <span class="field-label">Rango de fechas</span>
       <div style="display:flex;gap:8px;align-items:center;">
         <div style="position:relative;flex:1">
-          <input type="date" id="dateFrom" onclick="this.showPicker()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;">
+          <input type="date" id="dateFrom" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;" min="2020-01-01">
         </div>
         <span style="color:var(--muted);font-size:.85rem">→</span>
         <div style="position:relative;flex:1">
-          <input type="date" id="dateTo" onclick="this.showPicker()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;">
+          <input type="date" id="dateTo" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;" min="2020-01-01">
         </div>
       </div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
@@ -398,7 +398,7 @@ let selectedGroups=new Set();
 let selectedProjs=new Set();
 
 const ALL_PROJECTS=["EDUS3", "EDUS2", "EDUTEC", "TEFAC", "TEFAM", "TELOOIFP", "ESCUELAMOB", "TECHLCD", "TEEDUGL", "TEEVES2", "TEEVFLEX", "TEEVOBISME", "TEXTRAESCO", "TEKINEOX", "TELOMLOE", "TESEGSME", "TEGA4", "TEDISSME", "TESECVIR", "TETRACH", "TE", "TESOP", "TES3", "TECLIMAEM", "ESCP"];
-const ALL_GROUPS=["Educamos_Operaciones", "Educamos_Producto Global", "Educamos_Gestión economica", "Educamos_Comunicaciones_ y Movilidad", "Educamos_Gestión academica", "Educamos_Gerentes", "Educamos_Externos", "Educamos_Soporte", "Educamos_Producto España", "Educamos_Producto Mexico", "Educamos_Producto_Chile", "Educamos_Producto_Argentina"];
+const ALL_GROUPS=["Educamos_Operaciones","Educamos_Producto_Global","Educamos_Gestión_Economica","Educamos_Comunicaciones_yMovilidad","Educamos_Gestión_Académica","Educamos_Gerentes","Educamos_Externos","Educamos_Soporte","Educamos_Producto_España","Educamos_Producto_Mexico","Educamos_Producto_Chile","Educamos_Producto_Argentina"];
 
 // Init project dropdown
 function initProjs(){
