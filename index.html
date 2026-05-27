@@ -90,7 +90,7 @@
 <div style="display:flex;gap:4px;margin-bottom:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;">
   <button id="tab-personal" onclick="switchTab('personal')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;transition:all .2s;">👤 Mi Tiempo</button>
   <button id="tab-manager" onclick="switchTab('manager')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:transparent;color:var(--muted);transition:all .2s;">📊 Managers</button>
-  <button id="tab-imputar" onclick="switchTab('imputar')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:transparent;color:var(--muted);transition:all .2s;">⏱ Imputar</button>
+  <button id="tab-imputar" onclick="switchTab('imputar')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:transparent;color:var(--muted);transition:all .2s;">✏️ Imputar</button>
 </div>
 
 <!-- Personal Tab -->
@@ -507,45 +507,20 @@ function parseTime(str){
 let selectedIssueKey = null;
 
 async function searchIssue(){
-  const token = getPersonalToken();
-  if(!token){
-    document.getElementById('issueResult').textContent = '⚠ Configura tu token primero';
-    document.getElementById('issueResult').style.color = 'var(--red)';
-    return;
-  }
   const q = document.getElementById('issueSearch').value.trim();
   if(!q) return;
 
   document.getElementById('issueResult').textContent = 'Buscando...';
   document.getElementById('issueResult').style.color = 'var(--muted)';
 
-  const auth = btoa((logUserEmail||'') + ':' + token);
-
-  // If it looks like an issue key, fetch directly
-  const isKey = /^[A-Z]+-\d+$/i.test(q);
   try {
-    let issueKey, summary;
-    if(isKey){
-      const r = await fetch(`https://7education.atlassian.net/rest/api/3/issue/${q.toUpperCase()}?fields=summary`, {
-        headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' }
-      });
-      if(!r.ok) throw new Error('Issue no encontrado');
-      const d = await r.json();
-      issueKey = d.key;
-      summary = d.fields.summary;
-    } else {
-      const jql = encodeURIComponent(`summary ~ "${q}" ORDER BY updated DESC`);
-      const r = await fetch(`https://7education.atlassian.net/rest/api/3/search/jql?jql=${jql}&maxResults=5&fields=summary`, {
-        headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' }
-      });
-      if(!r.ok) throw new Error('Error en la búsqueda');
-      const d = await r.json();
-      if(!d.issues?.length) throw new Error('No se encontraron issues');
-      issueKey = d.issues[0].key;
-      summary = d.issues[0].fields.summary;
-    }
-    selectedIssueKey = issueKey;
-    document.getElementById('issueResult').innerHTML = `<span style="color:var(--accent)">${issueKey}</span> — ${summary}`;
+    // Use Vercel proxy to avoid CORS
+    const params = new URLSearchParams({ action: 'findIssue', q });
+    const r = await fetch(`/api/worklogs?${params}`);
+    if(!r.ok) throw new Error('Issue no encontrado');
+    const d = await r.json();
+    selectedIssueKey = d.key;
+    document.getElementById('issueResult').innerHTML = `<span style="color:var(--accent)">${d.key}</span> — ${d.summary}`;
     document.getElementById('issueResult').style.color = 'var(--text)';
   } catch(e) {
     document.getElementById('issueResult').textContent = '✗ ' + e.message;
