@@ -40,6 +40,7 @@ export default async function handler(req, res) {
       const match = users[0];
       const accountId = match.accountId;
 
+      // Search issues where this user logged work
       const jql = `worklogAuthor = "${accountId}" AND worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}"`;
       let allWorklogs = [];
       let startAt = 0;
@@ -78,70 +79,81 @@ export default async function handler(req, res) {
       return res.status(200).json({ worklogs: allWorklogs, displayName: match.displayName });
     }
 
-    // ── Get group members ─────────────────────────────────────
-    if (action === 'groupMembers') {
+    // ── Search by person (manager view - NEW STRATEGY) ───────
+    if (action === 'searchByPerson') {
+      // Get members of selected groups
       const groupList = (groups || '').split(',').map(g => g.trim()).filter(Boolean);
-      const allMembers = new Set();
+      const projectList = (project || '').split(',').map(p => p.trim()).filter(Boolean);
+
+      // Get all group members
+      const allMembers = [];
       for (const group of groupList) {
-        const url = `${JIRA_URL}/rest/api/3/group/member?groupname=${encodeURIComponent(group)}&maxResults=500`;
-        const r = await fetch(url, { headers });
-        if (r.ok) {
+        const gUrl = `${JIRA_URL}/rest/api/3/group/member?groupname=${encodeURIComponent(group)}&maxResults=500`;
+        const gR = await fetch(gUrl, { headers });
+        if (gR.ok) {
+          const gData = await gR.json();
+          (gData.values || []).forEach(u => {
+            if (!allMembers.find(m => m.accountId === u.accountId)) {
+              allMembers.push({ accountId: u.accountId, displayName: u.displayName });
+            }
+          });
+        }
+      }
+
+      if (allMembers.length === 0) {
+        return res.status(200).json({ personWorklogs: {} });
+      }
+
+      // For each person, get their worklogs directly
+      const personWorklogs = {};
+
+      for (const member of allMembers) {
+        let jqlParts = [`worklogAuthor = "${member.accountId}"`, `worklogDate >= "${dateFrom}"`, `worklogDate <= "${dateTo}"`];
+        if (projectList.length > 0) {
+          jqlParts.push(projectList.length === 1 
+            ? `project = "${projectList[0]}"` 
+            : `project in (${projectList.map(p => `"${p}"`).join(',')})`);
+        }
+        const jql = jqlParts.join(' AND ');
+
+        let issues = [];
+        let startAt = 0;
+        while (true) {
+          const url = `${JIRA_URL}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&startAt=${startAt}&maxResults=50&fields=summary,worklog`;
+          const r = await fetch(url, { headers });
+          if (!r.ok) break;
           const data = await r.json();
-          (data.values || []).forEach(u => allMembers.add(u.accountId));
+          issues = issues.concat(data.issues || []);
+          if ((data.issues || []).length < 50 || data.isLast || !data.nextPageToken) break;
+          startAt += 50;
         }
-      }
-      return res.status(200).json({ accountIds: [...allMembers] });
-    }
 
-    // ── Search (manager view) ────────────────────────────────
-    if (action === 'search') {
-      const startAt = parseInt(req.query.startAt || '0');
-      let jqlParts = [];
+        let totalSecs = 0;
+        const dailyMap = {};
 
-      // STRATEGY: if groups selected, filter by worklogAuthor in group (fast)
-      // Projects become optional additional filter
-      if (groups) {
-        const groupList = groups.split(',').map(g => g.trim()).filter(Boolean);
-        if (groupList.length === 1) {
-          jqlParts.push(`worklogAuthor in membersOf("${groupList[0]}")`);
-        } else {
-          const groupJql = groupList.map(g => `worklogAuthor in membersOf("${g}")`).join(' OR ');
-          jqlParts.push(`(${groupJql})`);
-        }
-      }
-
-      // Projects filter only if explicitly selected
-      if (project) {
-        const projects = project.split(',').map(p => p.trim()).filter(Boolean);
-        if (projects.length === 1) jqlParts.push(`project = "${projects[0]}"`);
-        else if (projects.length > 1) jqlParts.push(`project in (${projects.map(p => `"${p}"`).join(', ')})`);
-      }
-
-      // Date filter always
-      jqlParts.push(`worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}"`);
-      const jql = jqlParts.join(' AND ');
-
-      // Get group member ids for frontend filtering
-      let groupMemberIds = null;
-      if (groups) {
-        const groupList = groups.split(',').map(g => g.trim()).filter(Boolean);
-        const allMembers = new Set();
-        for (const group of groupList) {
-          const gUrl = `${JIRA_URL}/rest/api/3/group/member?groupname=${encodeURIComponent(group)}&maxResults=500`;
-          const gR = await fetch(gUrl, { headers });
-          if (gR.ok) {
-            const gData = await gR.json();
-            (gData.values || []).forEach(u => allMembers.add(u.accountId));
+        for (const issue of issues) {
+          // Always fetch full worklog list from dedicated endpoint to avoid duplicates
+          const wr = await fetch(`${JIRA_URL}/rest/api/3/issue/${issue.key}/worklog?maxResults=100`, { headers });
+          if (!wr.ok) continue;
+          const wd = await wr.json();
+          const wls = wd.worklogs || [];
+          
+          for (const wl of wls) {
+            if (wl.author?.accountId !== member.accountId) continue;
+            const wlDate = wl.started.split('T')[0];
+            if (wlDate < dateFrom || wlDate > dateTo) continue;
+            const secs = wl.timeSpentSeconds || 0;
+            totalSecs += secs;
+            dailyMap[wlDate] = (dailyMap[wlDate] || 0) + secs;
           }
         }
-        groupMemberIds = [...allMembers];
+
+        if (totalSecs > 0) {
+          personWorklogs[member.displayName] = { totalSecs, dailyMap, accountId: member.accountId };
+        }
       }
 
-      const url = `${JIRA_URL}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&startAt=${startAt}&maxResults=100&fields=summary,worklog`;
-      const r = await fetch(url, { headers });
-      const data = await r.json();
-      if (groupMemberIds) data._groupMemberIds = groupMemberIds;
-      return res.status(r.status).json(data);
+      return res.status(200).json({ personWorklogs, memberCount: allMembers.length });
     }
 
     // ── Single issue worklog ─────────────────────────────────
