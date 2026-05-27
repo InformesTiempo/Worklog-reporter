@@ -19,6 +19,12 @@ export default async function handler(req, res) {
 
   const { action, project, dateFrom, dateTo, issueKey, groups, user } = req.query;
 
+  // Parse body for POST requests
+  let parsedBody = {};
+  if (req.method === 'POST' && req.body) {
+    parsedBody = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  }
+
   try {
 
     // ── Groups list ──────────────────────────────────────────
@@ -162,6 +168,51 @@ export default async function handler(req, res) {
       const r = await fetch(url, { headers });
       const data = await r.json();
       return res.status(r.status).json(data);
+    }
+
+    // ── Log work (uses user's own token) ────────────────────
+    if (action === 'logWork') {
+      const { issueKey: wlIssueKey, timeSpentSeconds, date, comment, userEmail, userToken } = parsedBody;
+      const issueKey = wlIssueKey;
+
+      if (!userEmail || !userToken) {
+        return res.status(400).json({ error: 'Credenciales no proporcionadas' });
+      }
+
+      // Use user's own credentials
+      const userAuth = Buffer.from(`${userEmail}:${userToken}`).toString('base64');
+      const userHeaders = {
+        'Authorization': `Basic ${userAuth}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      };
+
+      const worklogBody = {
+        timeSpentSeconds: parseInt(timeSpentSeconds),
+        started: date + 'T09:00:00.000+0000'
+      };
+
+      if (comment) {
+        worklogBody.comment = {
+          type: 'doc', version: 1,
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: comment }] }]
+        };
+      }
+
+      const url = `${JIRA_URL}/rest/api/3/issue/${issueKey}/worklog`;
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: userHeaders,
+        body: JSON.stringify(worklogBody)
+      });
+
+      const data = await r.json();
+      if (!r.ok) {
+        return res.status(r.status).json({ 
+          error: data.errorMessages?.[0] || data.message || `Error ${r.status}` 
+        });
+      }
+      return res.status(200).json({ success: true, id: data.id });
     }
 
     // ── Find issue by key or text ────────────────────────────
