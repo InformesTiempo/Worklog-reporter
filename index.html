@@ -526,62 +526,54 @@ async function run(){
   const df=document.getElementById('dateFrom').value;
   const dt=document.getElementById('dateTo').value;
   const dh=parseFloat(document.getElementById('dailyHours').value);
-  if(!df||!dt){ss('⚠ Indica las fechas','error');return}
+  if(!df||!dt){ss('⚠ Indica las fechas','error');return;}
+  if(selectedGroups.size===0){ss('⚠ Selecciona al menos un equipo','error');return;}
 
-  const btn=document.querySelector('.btn');btn.disabled=true;
-  ss('⏳ Buscando issues...','loading');
+  const btn=document.querySelector('#pane-manager .btn');
+  btn.disabled=true;
+  ss('⏳ Obteniendo miembros del equipo...','loading');
   document.getElementById('results').style.display='none';
 
   try{
-    let issues=[],start=0,groupMemberIds=null;
-    while(true){
-      const params={action:'search',dateFrom:df,dateTo:dt,startAt:start};
-      if(projs.length) params.project=projs.join(',');
-      if(selectedGroups.size) params.groups=[...selectedGroups].join(',');
-      const d=await apiCall(params);
-      issues=issues.concat(d.issues||[]);
-      // Collect group member ids from first response
-      if(start===0 && d._groupMemberIds) groupMemberIds=new Set(d._groupMemberIds);
-      ss(`⏳ Cargando issues... ${issues.length}`, 'loading');
-      if(d.isLast||!d.nextPageToken||(d.issues||[]).length<100)break;
-      start+=100;
-    }
+    const params=new URLSearchParams({
+      action:'searchByPerson',
+      groups:[...selectedGroups].join(','),
+      dateFrom:df,
+      dateTo:dt
+    });
+    if(projs.length) params.append('project', projs.join(','));
 
-    ss(`⏳ Procesando ${issues.length} issues...`,'loading');
-    const pm={},dm={};const dfrom=new Date(df),dto=new Date(dt);let ti=0;
+    ss('⏳ Consultando worklogs por persona...','loading');
+    const r=await fetch(`/api/worklogs?${params}`);
+    if(!r.ok) throw new Error(`Error ${r.status}`);
+    const data=await r.json();
 
-    for(const iss of issues){
-      let wls=iss.fields.worklog?.worklogs||[];
-      if((iss.fields.worklog?.total||0)>wls.length){
-        const wd=await apiCall({action:'worklog',issueKey:iss.key});
-        wls=wd.worklogs||[];
-      }
-      let hit=false;
-      for(const wl of wls){
-        const wd2=new Date(wl.started.split('T')[0]);if(wd2<dfrom||wd2>dto)continue;
-        // Filter by group members if a group was selected
-        if(groupMemberIds && !groupMemberIds.has(wl.author?.accountId)) continue;
-        const name=wl.author?.displayName||wl.author?.emailAddress||'Desconocido';
-        const ds=wl.started.split('T')[0];const secs=wl.timeSpentSeconds||0;
-        if(!pm[name])pm[name]={secs:0,days:new Set(),issues:new Set()};
-        pm[name].secs+=secs;pm[name].days.add(ds);pm[name].issues.add(iss.key);
-        if(!dm[name])dm[name]={};dm[name][ds]=(dm[name][ds]||0)+secs;hit=true;
-      }
-      if(hit)ti++;
-    }
+    const personWorklogs=data.personWorklogs||{};
+    ss(`⏳ Procesando ${Object.keys(personWorklogs).length} personas...`,'loading');
 
-    let wd=0;const dc=new Date(dfrom);while(dc<=dto){if(dc.getDay()!==0&&dc.getDay()!==6)wd++;dc.setDate(dc.getDate()+1);}
-    const ttgt=wd*dh*3600;
+    // Build gData and gDaily from personWorklogs
+    let wdays=0;
+    const dc=new Date(df+'T00:00:00'),dte=new Date(dt+'T00:00:00');
+    const dcopy=new Date(dc);
+    while(dcopy<=dte){if(dcopy.getDay()!==0&&dcopy.getDay()!==6)wdays++;dcopy.setDate(dcopy.getDate()+1);}
+    const ttgt=wdays*dh*3600;
 
-    gData=Object.entries(pm).map(([name,d])=>{
-      const days=d.days.size;const avg=days?d.secs/days:0;const pct=ttgt?Math.round(d.secs/ttgt*100):0;
-      return{name,secs:d.secs,days,avg,pct,issues:d.issues.size};
+    gData=Object.entries(personWorklogs).map(([name,d])=>{
+      const days=Object.keys(d.dailyMap).length;
+      const avg=days?d.totalSecs/days:0;
+      const pct=ttgt?Math.round(d.totalSecs/ttgt*100):0;
+      return{name,secs:d.totalSecs,days,avg,pct,issues:0};
     }).sort((a,b)=>b.secs-a.secs);
-    gDaily=dm;
 
-    renderStats(gData,ti);renderTable(gData,dh);renderDaily(dm,dh*3600);
+    gDaily={};
+    Object.entries(personWorklogs).forEach(([name,d])=>{gDaily[name]=d.dailyMap;});
+
+    renderStats(gData, Object.keys(personWorklogs).length);
+    renderTable(gData,dh);
+    renderDaily(gDaily,dh*3600);
     document.getElementById('results').style.display='block';
     ss(`✓ ${gData.length} personas encontradas`,'success');
+
   }catch(err){ss(`✗ ${err.message}`,'error');}
   btn.disabled=false;
 }
