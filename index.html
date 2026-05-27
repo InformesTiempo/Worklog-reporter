@@ -598,7 +598,7 @@ async function loadImputarContext(){
 
     // Weekly summary pills
     const weekly = document.getElementById('weekly-summary');
-    weekly.innerHTML = days.map(d=>{
+    if(weekly) weekly.innerHTML = days.map(d=>{
       const dd = new Date(d+'T00:00:00');
       const isWE = dd.getDay()===0||dd.getDay()===6;
       const secs = dailyMap[d]||0;
@@ -613,6 +613,7 @@ async function loadImputarContext(){
         <div style="font-family:var(--mono);font-size:.82rem;font-weight:600;color:${color};margin-top:3px">${h}</div>
       </div>`;
     }).join('');
+    }
 
     // Build issue-day map for detail table
     const issueDayMap = {};
