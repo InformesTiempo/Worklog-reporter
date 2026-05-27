@@ -81,13 +81,81 @@
   <div class="logo">⏱</div>
   <div>
     <h1>Jira <span>Worklog</span> Reporter</h1>
-    <div style="font-size:.75rem;color:var(--muted);margin-top:2px">Seguimiento de tiempo por persona · Educamos</div>
+    <div style="font-size:.75rem;color:var(--muted);margin-top:2px">Seguimiento de tiempo · Educamos</div>
   </div>
-  <div class="badge">v3.0</div>
+  <div class="badge">v4.0</div>
 </header>
 
-<div class="card">
-  <div class="card-title">⚙ Configurar informe</div>
+<!-- Tabs -->
+<div style="display:flex;gap:4px;margin-bottom:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;">
+  <button id="tab-personal" onclick="switchTab('personal')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;transition:all .2s;">👤 Mi Tiempo</button>
+  <button id="tab-manager" onclick="switchTab('manager')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:transparent;color:var(--muted);transition:all .2s;">📊 Managers</button>
+</div>
+
+<!-- Personal Tab -->
+<div id="pane-personal">
+  <div class="card">
+    <div class="card-title">👤 Mi tiempo en Jira</div>
+    <div class="grid-3" style="margin-bottom:1rem;align-items:end;">
+      <div>
+        <span class="field-label">Tu usuario de Jira</span>
+        <input type="text" id="jiraUser" placeholder="nombre.apellido" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;">
+        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">Tu nombre de usuario de Jira (sin @educamos.com)</div>
+      </div>
+      <div>
+        <span class="field-label">Rango de fechas</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="date" id="pDateFrom" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;">
+          <span style="color:var(--muted)">→</span>
+          <input type="date" id="pDateTo" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;">
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+          <button onclick="setRangeP('thisMonth')" class="range-btn">Este mes</button>
+          <button onclick="setRangeP('lastMonth')" class="range-btn">Mes anterior</button>
+          <button onclick="setRangeP('thisWeek')" class="range-btn">Esta semana</button>
+          <button onclick="setRangeP('last30')" class="range-btn">Últimos 30 días</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-end;">
+        <button class="btn" onclick="runPersonal()" style="width:100%">▶ Ver mis horas</button>
+      </div>
+    </div>
+    <div id="pStatus"></div>
+  </div>
+  <div id="pResults" style="display:none;">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-value" id="ps1" style="color:var(--green)">—</div><div class="stat-label">Horas totales</div></div>
+      <div class="stat-card"><div class="stat-value" id="ps2" style="color:var(--accent)">—</div><div class="stat-label">Días trabajados</div></div>
+      <div class="stat-card"><div class="stat-value" id="ps3" style="color:var(--yellow)">—</div><div class="stat-label">Issues</div></div>
+      <div class="stat-card"><div class="stat-value" id="ps4" style="color:var(--accent)">—</div><div class="stat-label">Media diaria</div></div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:1.2rem 1.5rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <div class="stitle">📋 Mis imputaciones por issue</div>
+        <button class="btn btn-sec" onclick="exportPersonalCSV()" style="padding:8px 16px;font-size:.8rem;">⬇ Exportar CSV</button>
+      </div>
+      <div style="overflow-x:auto;"><table id="pTable" class="daily-table" style="width:100%;border-collapse:collapse;font-size:.82rem;"></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- Manager Tab (hidden by default) -->
+<div id="pane-manager" style="display:none;">
+  <!-- Lock screen -->
+  <div id="manager-lock" class="card" style="max-width:400px;margin:4rem auto;text-align:center;">
+    <div style="font-size:3rem;margin-bottom:1rem;">🔒</div>
+    <div style="font-family:var(--mono);font-size:1rem;margin-bottom:.5rem;">Acceso Managers</div>
+    <div style="font-size:.85rem;color:var(--muted);margin-bottom:1.5rem;">Esta sección es solo para responsables de equipo</div>
+    <input type="password" id="managerPass" placeholder="Contraseña de manager" onkeydown="if(event.key==='Enter')checkPass()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;margin-bottom:1rem;">
+    <div id="passError" style="display:none;color:var(--red);font-size:.8rem;font-family:var(--mono);margin-bottom:1rem;">❌ No tienes acceso de manager</div>
+    <button class="btn" onclick="checkPass()" style="width:100%">🔓 Entrar</button>
+  </div>
+  <!-- Manager content (hidden until authenticated) -->
+  <div id="manager-content" style="display:none;"></div>
+</div>
+
+<div id="manager-main"><div class="card">
+  <div class="card-title">⚙ Configurar informe — Vista Manager</div>
   <div class="grid-3" style="margin-bottom:1.2rem">
     <div>
       <span class="field-label">Proyectos <span style="font-size:.7rem;color:var(--muted)">(puedes seleccionar varios)</span></span>
@@ -170,12 +238,189 @@
     <div id="daily" style="overflow-x:auto"></div>
   </div>
 </div>
+</div><!-- end manager-main -->
 
 <script>
+// ── Tab switching ──────────────────────────────
+const MANAGER_PASS = 'ManagmetsEducamos';
+let managerUnlocked = false;
+
+function switchTab(tab){
+  document.getElementById('pane-personal').style.display = tab==='personal'?'block':'none';
+  document.getElementById('pane-manager').style.display = tab==='manager'?'block':'none';
+  document.getElementById('tab-personal').style.background = tab==='personal'?'linear-gradient(135deg,var(--accent),var(--accent2))':'transparent';
+  document.getElementById('tab-personal').style.color = tab==='personal'?'#fff':'var(--muted)';
+  document.getElementById('tab-manager').style.background = tab==='manager'?'linear-gradient(135deg,var(--accent),var(--accent2))':'transparent';
+  document.getElementById('tab-manager').style.color = tab==='manager'?'#fff':'var(--muted)';
+}
+
+function checkPass(){
+  const val = document.getElementById('managerPass').value;
+  if(val === MANAGER_PASS){
+    managerUnlocked = true;
+    document.getElementById('manager-lock').style.display='none';
+    // Move manager-main into manager-content
+    const mc = document.getElementById('manager-content');
+    const mm = document.getElementById('manager-main');
+    if(mm) mc.appendChild(mm);
+    mc.style.display='block';
+  } else {
+    document.getElementById('passError').style.display='block';
+    document.getElementById('managerPass').value='';
+    setTimeout(()=>document.getElementById('passError').style.display='none', 3000);
+  }
+}
+
+// ── Personal view ───────────────────────────────
+function ssP(msg,t){
+  const e=document.getElementById('pStatus');
+  e.textContent=msg;
+  e.className=t;
+  e.style.display=msg?'block':'none';
+  if(t==='loading') e.style.color='var(--accent)';
+  else if(t==='error') e.style.color='var(--red)';
+  else e.style.color='var(--green)';
+  e.style.padding='8px 16px';
+  e.style.background='var(--surface2)';
+  e.style.borderRadius='6px';
+  e.style.fontFamily='var(--mono)';
+  e.style.fontSize='.8rem';
+}
+
+function setRangeP(type){
+  const now=new Date();
+  let from,to;
+  if(type==='thisMonth'){from=new Date(now.getFullYear(),now.getMonth(),1);to=new Date(now.getFullYear(),now.getMonth()+1,0);}
+  else if(type==='lastMonth'){from=new Date(now.getFullYear(),now.getMonth()-1,1);to=new Date(now.getFullYear(),now.getMonth(),0);}
+  else if(type==='thisWeek'){const d=now.getDay()||7;from=new Date(now);from.setDate(now.getDate()-d+1);to=new Date(from);to.setDate(from.getDate()+6);}
+  else if(type==='last30'){from=new Date(now);from.setDate(now.getDate()-29);to=new Date(now);}
+  const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  document.getElementById('pDateFrom').value=fmt(from);
+  document.getElementById('pDateTo').value=fmt(to);
+}
+
+async function runPersonal(){
+  const username=document.getElementById('jiraUser').value.trim();
+  const df=document.getElementById('pDateFrom').value;
+  const dt=document.getElementById('pDateTo').value;
+  if(!username){ssP('⚠ Introduce tu usuario de Jira','error');return;}
+  if(!df||!dt){ssP('⚠ Indica las fechas','error');return;}
+
+  ssP('⏳ Buscando tu usuario...','loading');
+  document.getElementById('pResults').style.display='none';
+
+  try{
+    // First resolve username to accountId
+    const lookupR=await fetch(`/api/worklogs?action=findUser&username=${encodeURIComponent(username)}`);
+    if(!lookupR.ok){
+      const e=await lookupR.json();
+      throw new Error(e.error||`Usuario "${username}" no encontrado`);
+    }
+    const userData=await lookupR.json();
+    const user=userData.accountId;
+    ssP(`⏳ Buscando imputaciones de ${userData.displayName}...`,'loading');
+
+    // Fetch worklogs for this user
+    const params=new URLSearchParams({action:'personal',user,dateFrom:df,dateTo:dt});
+    const r=await fetch(`/api/worklogs?${params}`);
+    if(!r.ok) throw new Error(`Error ${r.status}`);
+    const data=await r.json();
+    const worklogs=data.worklogs||[];
+
+    if(!worklogs.length){ssP('No se encontraron imputaciones en este período','error');return;}
+
+    // Group by issue
+    const issueMap={};
+    let totalSecs=0;
+    const daySet=new Set();
+    const allDates=[];
+    const cur=new Date(df+'T00:00:00'),end=new Date(dt+'T00:00:00');
+    while(cur<=end){allDates.push(cur.toISOString().split('T')[0]);cur.setDate(cur.getDate()+1);}
+
+    for(const wl of worklogs){
+      const key=wl.issueKey;
+      const ds=wl.started.split('T')[0];
+      const secs=wl.timeSpentSeconds||0;
+      if(!issueMap[key]) issueMap[key]={summary:wl.issueSummary||key,days:{},total:0};
+      issueMap[key].days[ds]=(issueMap[key].days[ds]||0)+secs;
+      issueMap[key].total+=secs;
+      totalSecs+=secs;
+      daySet.add(ds);
+    }
+
+    // Stats
+    const workDays=[...daySet].filter(d=>{const dd=new Date(d+'T00:00:00');return dd.getDay()!==0&&dd.getDay()!==6;});
+    document.getElementById('ps1').textContent=(totalSecs/3600).toFixed(1)+'h';
+    document.getElementById('ps2').textContent=workDays.length;
+    document.getElementById('ps3').textContent=Object.keys(issueMap).length;
+    document.getElementById('ps4').textContent=workDays.length?(totalSecs/3600/workDays.length).toFixed(1)+'h':'—';
+
+    // Build table
+    const dow=['D','L','M','X','J','V','S'];
+    const thead=`<thead><tr>
+      <th style="text-align:left;min-width:80px;padding:8px 10px;font-family:var(--mono);font-size:.7rem;color:var(--muted);border-bottom:1px solid var(--border);">Issue</th>
+      <th style="text-align:left;min-width:200px;padding:8px 10px;font-family:var(--mono);font-size:.7rem;color:var(--muted);border-bottom:1px solid var(--border);">Resumen</th>
+      <th style="min-width:60px;padding:8px 10px;font-family:var(--mono);font-size:.7rem;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface2);">Σ Total</th>
+      ${allDates.map(d=>{const dd=new Date(d+'T00:00:00');const isWE=dd.getDay()===0||dd.getDay()===6;return`<th style="text-align:center;padding:6px 4px;font-family:var(--mono);font-size:.68rem;color:var(--muted);border-bottom:1px solid var(--border);border-right:1px solid var(--border);min-width:36px;background:${isWE?'rgba(100,116,139,.1)':'inherit'}">${dow[dd.getDay()]}<br>${d.slice(8)}/${d.slice(5,7)}</th>`;}).join('')}
+    </tr></thead>`;
+
+    const rows=Object.entries(issueMap).sort((a,b)=>b[1].total-a[1].total).map(([key,data])=>{
+      const cells=allDates.map(d=>{
+        const dd=new Date(d+'T00:00:00');
+        const isWE=dd.getDay()===0||dd.getDay()===6;
+        const s=data.days[d]||0;
+        if(isWE) return`<td style="background:rgba(100,116,139,.06);border-right:1px solid var(--border);text-align:center;">${s>0?((s/3600).toFixed(1)):''}</td>`;
+        if(!s) return`<td style="border-right:1px solid var(--border);text-align:center;color:var(--muted);">—</td>`;
+        const h=(s/3600).toFixed(1);
+        return`<td style="border-right:1px solid var(--border);text-align:center;background:rgba(79,110,247,.12);color:#818cf8;font-family:var(--mono);font-size:.8rem;">${h}</td>`;
+      }).join('');
+      return`<tr>
+        <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:.8rem;color:var(--accent);white-space:nowrap;">${key}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:.82rem;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${data.summary}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-family:var(--mono);font-weight:600;text-align:center;background:var(--surface2);">${(data.total/3600).toFixed(1)}h</td>
+        ${cells}
+      </tr>`;
+    }).join('');
+
+    // Total row
+    const totalRow=`<tr style="background:var(--surface2);">
+      <td colspan="2" style="padding:8px 10px;font-family:var(--mono);font-size:.8rem;font-weight:600;">TOTAL</td>
+      <td style="padding:8px 10px;font-family:var(--mono);font-weight:600;text-align:center;color:var(--green);">${(totalSecs/3600).toFixed(1)}h</td>
+      ${allDates.map(d=>{
+        const dd=new Date(d+'T00:00:00');const isWE=dd.getDay()===0||dd.getDay()===6;
+        const dayTotal=Object.values(issueMap).reduce((s,iss)=>s+(iss.days[d]||0),0);
+        if(isWE) return`<td style="background:rgba(100,116,139,.06);text-align:center;border-right:1px solid var(--border);font-family:var(--mono);font-size:.8rem;">${dayTotal>0?((dayTotal/3600).toFixed(1)):''}</td>`;
+        if(!dayTotal) return`<td style="border-right:1px solid var(--border);text-align:center;color:var(--muted);">—</td>`;
+        const h=(dayTotal/3600).toFixed(1);
+        let col=h>=8?'var(--green)':h>=4?'var(--yellow)':'var(--red)';
+        return`<td style="border-right:1px solid var(--border);text-align:center;font-family:var(--mono);font-size:.8rem;font-weight:600;color:${col};">${h}</td>`;
+      }).join('')}
+    </tr>`;
+
+    document.getElementById('pTable').innerHTML=thead+`<tbody>${rows}${totalRow}</tbody>`;
+    document.getElementById('pResults').style.display='block';
+    ssP(`✓ ${Object.keys(issueMap).length} issues encontrados`,'success');
+
+  }catch(err){ssP(`✗ ${err.message}`,'error');}
+}
+
+let pData=[];
+function exportPersonalCSV(){
+  // Simple export of the table
+  const table=document.getElementById('pTable');
+  if(!table) return;
+  const rows=[...table.querySelectorAll('tr')].map(r=>[...r.querySelectorAll('th,td')].map(c=>c.textContent.trim()).join(','));
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mis-horas.csv';a.click();
+}
+
+// ── Date init ───────────────────────────────────
 const now=new Date(),y=now.getFullYear(),mo=String(now.getMonth()+1).padStart(2,'0');
 document.getElementById('dateFrom').value=`${y}-${mo}-01`;
 const last=new Date(y,now.getMonth()+1,0).getDate();
 document.getElementById('dateTo').value=`${y}-${mo}-${String(last).padStart(2,'0')}`;
+// Init personal dates too
+setRangeP('thisMonth');
 
 let gData=[],gDaily={};
 let selectedGroups=new Set();
