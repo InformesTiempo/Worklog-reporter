@@ -327,7 +327,7 @@ function switchTab(tab){
   });
   if(tab==='imputar') checkTokenStatus();
   if(tab==='personal'){
-    const savedEmail = localStorage.getItem('jira_log_email');
+    const savedEmail = getCookie('jira_email');
     if(savedEmail) document.getElementById('jiraUser').value = savedEmail;
   }
 }
@@ -369,7 +369,7 @@ function setRangeP(type){
 
 async function runPersonal(){
   // Auto-fill from saved token if available
-  const savedEmail = localStorage.getItem('jira_log_email');
+  const savedEmail = getCookie('jira_email');
   if(savedEmail && !document.getElementById('jiraUser').value.trim()){
     document.getElementById('jiraUser').value = savedEmail;
   }
@@ -481,7 +481,7 @@ function exportPersonalCSV(){
 }
 
 // ── Imputar (log work) ─────────────────────────
-let logUserEmail = localStorage.getItem('jira_log_email') || '';
+let logUserEmail = getCookie('jira_email') || '';
 
 function saveToken(){
   const t = document.getElementById('personalToken').value.trim();
@@ -504,8 +504,8 @@ function clearToken(){
 }
 
 function checkTokenStatus(){
-  const t = localStorage.getItem('jira_personal_token');
-  const e = localStorage.getItem('jira_log_email');
+  const t = getCookie('jira_token');
+  const e = getCookie('jira_email');
   const el = document.getElementById('token-status');
   if(t && e){
     el.textContent = '✓ Configurado como ' + e;
@@ -666,7 +666,7 @@ function selectRecentIssue(key, summary){
 }
 
 function getPersonalToken(){
-  return localStorage.getItem('jira_personal_token');
+  return getCookie('jira_token');
 }
 
 function parseTime(str){
@@ -802,7 +802,7 @@ setRangeP('thisMonth');
 
 // Pre-fill email in Mi Tiempo from saved credentials
 window.addEventListener('DOMContentLoaded', ()=>{
-  const savedEmail = localStorage.getItem('jira_log_email');
+  const savedEmail = getCookie('jira_email');
   if(savedEmail){
     const jiraUserEl = document.getElementById('jiraUser');
     if(jiraUserEl) jiraUserEl.value = savedEmail;
