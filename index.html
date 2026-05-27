@@ -149,7 +149,7 @@
   <div class="card-title">⚙ Configurar informe — Vista Manager</div>
   <div class="grid-3" style="margin-bottom:1.2rem">
     <div>
-      <span class="field-label">Proyectos <span style="font-size:.7rem;color:var(--muted)">(puedes seleccionar varios)</span></span>
+      <span class="field-label">Proyectos <span style="font-size:.7rem;color:var(--muted)">(opcional, vacío = todos)</span></span>
       <div style="position:relative">
         <div id="projSelector" onclick="toggleProjs()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
           <span id="projLabel" style="color:var(--muted)">Todos los proyectos</span>
@@ -188,11 +188,11 @@
       <span class="field-label">Rango de fechas</span>
       <div style="display:flex;gap:8px;align-items:center;">
         <div style="position:relative;flex:1">
-          <input type="date" id="dateFrom" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;" min="2020-01-01">
+          <input type="date" id="dateFrom" onclick="try{this.showPicker()}catch(e){}" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;" min="2020-01-01">
         </div>
         <span style="color:var(--muted);font-size:.85rem">→</span>
         <div style="position:relative;flex:1">
-          <input type="date" id="dateTo" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;" min="2020-01-01">
+          <input type="date" id="dateTo" onclick="try{this.showPicker()}catch(e){}" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;" min="2020-01-01">
         </div>
       </div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
