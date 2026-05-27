@@ -55,10 +55,19 @@
   .hm{font-family:var(--mono);font-size:.9rem}
   .stitle{font-family:var(--mono);font-size:.9rem;color:var(--text)}
   .dtable{width:100%;border-collapse:collapse;font-size:.82rem}
-  .dtable th{padding:8px 10px;text-align:center;font-family:var(--mono);font-size:.7rem;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap}
-  .dtable th:first-child{text-align:left}
-  .dtable td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:center}
-  .dtable td:first-child{text-align:left}
+  .dtable th{padding:6px 8px;text-align:center;font-family:var(--mono);font-size:.68rem;color:var(--muted);border-bottom:1px solid var(--border);border-right:1px solid var(--border);white-space:nowrap;min-width:42px}
+  .dtable th:first-child{text-align:left;min-width:180px;position:sticky;left:0;background:var(--surface2);z-index:2}
+  .dtable th.weekend{background:rgba(100,116,139,.08);color:var(--muted)}
+  .dtable th.total-col{background:var(--surface2);font-weight:600;color:var(--text)}
+  .dtable td{padding:6px 8px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:center;font-family:var(--mono);font-size:.8rem}
+  .dtable td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1;font-family:var(--sans)}
+  .dtable tr:hover td:first-child{background:var(--surface2)}
+  .dtable td.weekend{background:rgba(100,116,139,.06)}
+  .dtable td.ok{background:rgba(34,197,94,.12);color:#4ade80}
+  .dtable td.partial{background:rgba(245,158,11,.12);color:#fbbf24}
+  .dtable td.low{background:rgba(239,68,68,.12);color:#f87171}
+  .dtable td.empty-work{background:rgba(239,68,68,.06)}
+  .dtable td.total-col{background:var(--surface2);font-weight:600;color:var(--text)}
   .dtable tr:last-child td{border-bottom:none}
   .tbtn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 12px;font-family:var(--mono);font-size:.72rem;cursor:pointer}
   .tbtn:hover{border-color:var(--accent);color:var(--accent)}
@@ -77,22 +86,50 @@
 
 <div class="card">
   <div class="card-title">⚙ Configurar informe</div>
-  <div style="margin-bottom:1.2rem">
-    <span class="field-label">Proyectos</span>
-    <div class="chk-group">
-      <label><input type="checkbox" id="proj-TES3" checked> TES3</label>
-      <label><input type="checkbox" id="proj-TETRACH"> TETRACH</label>
+  <div class="grid-3" style="margin-bottom:1.2rem">
+    <div>
+      <span class="field-label">Proyectos <span style="font-size:.7rem;color:var(--muted)">(puedes seleccionar varios)</span></span>
+      <div style="position:relative">
+        <div id="projSelector" onclick="toggleProjs()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+          <span id="projLabel" style="color:var(--muted)">Todos los proyectos</span>
+          <span>▾</span>
+        </div>
+        <div id="projDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-top:4px;z-index:100;max-height:220px;overflow-y:auto;">
+          <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border);background:var(--surface2);">
+            <input type="checkbox" id="proj-all" onchange="toggleAllProjs(this)" style="accent-color:var(--accent)"> Todos los proyectos
+          </label>
+          <div id="projList"></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <span class="field-label">Equipo <span style="font-size:.7rem;color:var(--muted)">(opcional)</span></span>
+      <div style="position:relative">
+        <div id="groupSelector" onclick="toggleGroups()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+          <span id="groupLabel" style="color:var(--muted)">Todos los equipos</span>
+          <span>▾</span>
+        </div>
+        <div id="groupDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-top:4px;z-index:100;max-height:220px;overflow-y:auto;">
+          <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border);background:var(--surface2);">
+            <input type="checkbox" id="grp-all" onchange="toggleAllGroups(this)" style="accent-color:var(--accent)"> Todos los equipos
+          </label>
+          <div id="groupList"></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <span class="field-label">Horas laborables/día</span>
+      <input type="number" id="dailyHours" value="8.5" step="0.5" min="1" max="24" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;">
     </div>
   </div>
-  <div class="grid-3">
-    <div><span class="field-label">Fecha inicio</span><input type="date" id="dateFrom"></div>
-    <div><span class="field-label">Fecha fin</span><input type="date" id="dateTo"></div>
-    <div><span class="field-label">Horas laborables/día</span><input type="number" id="dailyHours" value="8.5" step="0.5" min="1" max="24"></div>
+  <div class="grid-3" style="margin-bottom:1rem">
+    <div><span class="field-label">Fecha inicio</span><input type="date" id="dateFrom" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;"></div>
+    <div><span class="field-label">Fecha fin</span><input type="date" id="dateTo" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;"></div>
+    <div style="display:flex;align-items:flex-end">
+      <button class="btn" onclick="run()" style="width:100%">▶ Generar informe</button>
+    </div>
   </div>
-  <div class="actions">
-    <button class="btn" onclick="run()">▶ Generar informe</button>
-    <div id="status"></div>
-  </div>
+  <div id="status"></div>
 </div>
 
 <div id="results">
@@ -112,7 +149,7 @@
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
       <div class="card-title" style="margin:0">📅 Detalle diario</div>
-      <button class="tbtn" onclick="toggleD()">Mostrar/Ocultar</button>
+      
     </div>
     <div id="daily" style="overflow-x:auto"></div>
   </div>
@@ -125,6 +162,88 @@ const last=new Date(y,now.getMonth()+1,0).getDate();
 document.getElementById('dateTo').value=`${y}-${mo}-${String(last).padStart(2,'0')}`;
 
 let gData=[],gDaily={};
+let selectedGroups=new Set();
+let selectedProjs=new Set();
+
+const ALL_PROJECTS=["EDUS3", "EDUS2", "EDUTEC", "TEFAC", "TEFAM", "TELOOIFP", "ESCUELAMOB", "TECHLCD", "TEEDUGL", "TEEVES2", "TEEVFLEX", "TEEVOBISME", "TEXTRAESCO", "TEKINEOX", "TELOMLOE", "TESEGSME", "TEGA4", "TEDISSME", "TESECVIR", "TETRACH", "TE", "TESOP", "TES3", "TECLIMAEM", "ESCP"];
+const ALL_GROUPS=["Educamos_Operaciones", "Educamos_Producto Global", "Educamos_Gestión economica", "Educamos_Comunicaciones_ y Movilidad", "Educamos_Gestión academica", "Educamos_Gerentes", "Educamos_Externos", "Educamos_Soporte", "Educamos_Producto España", "Educamos_Producto Mexico", "Educamos_Producto_Chile", "Educamos_Producto_Argentina"];
+
+// Init project dropdown
+function initProjs(){
+  const list=document.getElementById('projList');
+  list.innerHTML=ALL_PROJECTS.map(p=>`
+    <label style="display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border);">
+      <input type="checkbox" class="proj-chk" value="${p}" onchange="updateProjSelection()" style="accent-color:var(--accent)">
+      <span style="font-family:var(--mono)">${p}</span>
+    </label>
+  `).join('');
+}
+
+function toggleProjs(){
+  const d=document.getElementById('projDropdown');
+  d.style.display=d.style.display==='none'?'block':'none';
+}
+
+function toggleAllProjs(cb){
+  document.querySelectorAll('.proj-chk').forEach(c=>c.checked=cb.checked);
+  updateProjSelection();
+}
+
+function updateProjSelection(){
+  selectedProjs=new Set([...document.querySelectorAll('.proj-chk:checked')].map(c=>c.value));
+  const allCb=document.getElementById('proj-all');
+  const total=document.querySelectorAll('.proj-chk').length;
+  allCb.checked=selectedProjs.size===total&&total>0;
+  document.getElementById('projLabel').textContent=
+    selectedProjs.size===0?'Todos los proyectos':
+    selectedProjs.size===1?[...selectedProjs][0]:
+    `${selectedProjs.size} proyectos seleccionados`;
+}
+
+// Init group dropdown
+function initGroups(){
+  const list=document.getElementById('groupList');
+  list.innerHTML=ALL_GROUPS.map(g=>`
+    <label style="display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border);">
+      <input type="checkbox" class="grp-chk" value="${g}" onchange="updateGroupSelection()" style="accent-color:var(--accent)">
+      <span>${g}</span>
+    </label>
+  `).join('');
+}
+
+function toggleGroups(){
+  const d=document.getElementById('groupDropdown');
+  d.style.display=d.style.display==='none'?'block':'none';
+}
+
+function toggleAllGroups(cb){
+  document.querySelectorAll('.grp-chk').forEach(c=>c.checked=cb.checked);
+  updateGroupSelection();
+}
+
+function updateGroupSelection(){
+  selectedGroups=new Set([...document.querySelectorAll('.grp-chk:checked')].map(c=>c.value));
+  const allCb=document.getElementById('grp-all');
+  const total=document.querySelectorAll('.grp-chk').length;
+  allCb.checked=selectedGroups.size===total&&total>0;
+  document.getElementById('groupLabel').textContent=
+    selectedGroups.size===0?'Todos los equipos':
+    selectedGroups.size===1?[...selectedGroups][0]:
+    `${selectedGroups.size} equipos seleccionados`;
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click',e=>{
+  ['projSelector','projDropdown','groupSelector','groupDropdown'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&!el.contains(e.target)){
+      if(id==='projDropdown'||id==='groupDropdown') el.style.display='none';
+    }
+  });
+});
+
+initProjs();
+initGroups();
 
 function ss(msg,t){const e=document.getElementById('status');e.textContent=msg;e.className=t}
 function sH(s){return(s/3600).toFixed(1)+'h'}
@@ -142,11 +261,10 @@ async function apiCall(params) {
 }
 
 async function run(){
-  const projs=['TES3','TETRACH'].filter(p=>document.getElementById('proj-'+p)?.checked);
+  const projs=[...selectedProjs];
   const df=document.getElementById('dateFrom').value;
   const dt=document.getElementById('dateTo').value;
   const dh=parseFloat(document.getElementById('dailyHours').value);
-  if(!projs.length){ss('⚠ Selecciona al menos un proyecto','error');return}
   if(!df||!dt){ss('⚠ Indica las fechas','error');return}
 
   const btn=document.querySelector('.btn');btn.disabled=true;
@@ -156,7 +274,10 @@ async function run(){
   try{
     let issues=[],start=0;
     while(true){
-      const d=await apiCall({action:'search',project:projs.join(','),dateFrom:df,dateTo:dt,startAt:start});
+      const params={action:'search',dateFrom:df,dateTo:dt,startAt:start};
+      if(projs.length) params.project=projs.join(',');
+      if(selectedGroups.size) params.groups=[...selectedGroups].join(',');
+      const d=await apiCall(params);
       issues=issues.concat(d.issues||[]);
       ss(`⏳ Cargando issues... ${issues.length}`, 'loading');
       if(d.isLast||!d.nextPageToken||(d.issues||[]).length<100)break;
@@ -226,12 +347,52 @@ function renderDaily(dm,dtgt){
   const el=document.getElementById('daily');
   const ps=Object.keys(dm).sort();
   if(!ps.length){el.innerHTML='<p style="color:var(--muted);font-size:.85rem">Sin datos</p>';return;}
-  const dates=[...new Set(Object.values(dm).flatMap(d=>Object.keys(d)))].sort();
+
+  // Build full date range from dateFrom to dateTo
+  const df=document.getElementById('dateFrom').value;
+  const dt=document.getElementById('dateTo').value;
+  const allDates=[];
+  const cur=new Date(df+'T00:00:00');
+  const end=new Date(dt+'T00:00:00');
+  while(cur<=end){allDates.push(cur.toISOString().split('T')[0]);cur.setDate(cur.getDate()+1);}
+
   const dow=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  el.innerHTML=`<table class="dtable"><thead><tr><th>Persona</th>${dates.map(d=>{const dd=new Date(d+'T00:00:00');return`<th>${dow[dd.getDay()]}<br>${d.slice(5)}</th>`;}).join('')}<th>Total</th></tr></thead><tbody>${ps.map(name=>{
-    const total=Object.values(dm[name]).reduce((a,b)=>a+b,0);const col=hc(name);
-    return`<tr><td><div class="pcell"><div class="avatar" style="background:${col};width:24px;height:24px;font-size:.65rem">${ini(name)}</div><span style="font-size:.82rem">${name}</span></div></td>${dates.map(d=>{const s=dm[name]?.[d]||0;if(!s)return'<td style="color:var(--muted)">—</td>';const h=(s/3600).toFixed(1);let c='var(--green)',bg='rgba(34,197,94,.08)';if(s<dtgt*.5){c='var(--red)';bg='rgba(239,68,68,.08)';}else if(s<dtgt*.85){c='var(--yellow)';bg='rgba(245,158,11,.08)';}return`<td style="background:${bg}"><span class="hm" style="color:${c}">${h}h</span></td>`;}).join('')}<td class="hm" style="font-weight:600">${sH(total)}</td></tr>`;
-  }).join('')}</tbody></table>`;
+  const dowShort=['D','L','M','X','J','V','S'];
+
+  const thead=`<thead><tr>
+    <th>Usuario</th>
+    <th class="total-col">Registrado</th>
+    ${allDates.map(d=>{
+      const dd=new Date(d+'T00:00:00');
+      const isWE=dd.getDay()===0||dd.getDay()===6;
+      return`<th class="${isWE?'weekend':''}">${dowShort[dd.getDay()]}<br>${d.slice(8)}/${d.slice(5,7)}</th>`;
+    }).join('')}
+  </tr></thead>`;
+
+  const tbody=ps.map(name=>{
+    const total=Object.values(dm[name]).reduce((a,b)=>a+b,0);
+    const col=hc(name);
+    const cells=allDates.map(d=>{
+      const dd=new Date(d+'T00:00:00');
+      const isWE=dd.getDay()===0||dd.getDay()===6;
+      const isWork=!isWE;
+      const s=dm[name]?.[d]||0;
+      if(isWE) return`<td class="weekend">${s>0?((s/3600).toFixed(1)+'h'):''}</td>`;
+      if(!s) return`<td class="empty-work">—</td>`;
+      const h=(s/3600).toFixed(1);
+      let cls='ok';
+      if(s<dtgt*.5)cls='low';
+      else if(s<dtgt*.85)cls='partial';
+      return`<td class="${cls}">${h}</td>`;
+    }).join('');
+    return`<tr>
+      <td><div class="pcell"><div class="avatar" style="background:${col};width:24px;height:24px;font-size:.65rem">${ini(name)}</div><span style="font-size:.82rem">${name}</span></div></td>
+      <td class="total-col" style="font-weight:600">${(total/3600).toFixed(1)}h</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  el.innerHTML=`<table class="dtable">${thead}<tbody>${tbody}</tbody></table>`;
 }
 
 function toggleD(){const e=document.getElementById('daily');e.style.display=e.style.display==='none'?'':'none';}
