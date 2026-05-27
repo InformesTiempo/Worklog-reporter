@@ -88,13 +88,13 @@
 
 <!-- Tabs -->
 <div style="display:flex;gap:4px;margin-bottom:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;">
-  <button id="tab-personal" onclick="switchTab('personal')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;transition:all .2s;">👤 Mi Tiempo</button>
+  <button id="tab-imputar" onclick="switchTab('imputar')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;transition:all .2s;">✏️ Imputar</button>
+  <button id="tab-personal" onclick="switchTab('personal')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:transparent;color:var(--muted);transition:all .2s;">👤 Mi Tiempo</button>
   <button id="tab-manager" onclick="switchTab('manager')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:transparent;color:var(--muted);transition:all .2s;">📊 Managers</button>
-  <button id="tab-imputar" onclick="switchTab('imputar')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:transparent;color:var(--muted);transition:all .2s;">✏️ Imputar</button>
 </div>
 
 <!-- Personal Tab -->
-<div id="pane-personal">
+<div id="pane-personal" style="display:none;">
   <div class="card">
     <div class="card-title">👤 Mi tiempo en Jira</div>
     <div class="grid-3" style="margin-bottom:1rem;align-items:end;">
@@ -141,7 +141,7 @@
 </div>
 
 <!-- Imputar Tab -->
-<div id="pane-imputar" style="display:none;">
+<div id="pane-imputar">
   <div class="card">
     <div class="card-title">⏱ Registrar tiempo en Jira</div>
 
@@ -159,6 +159,22 @@
       </div>
       <div style="font-size:.72rem;color:var(--muted);margin-top:6px;">
         Genera tu token en <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" style="color:var(--accent);">id.atlassian.com</a> — se guarda solo en tu navegador
+      </div>
+    </div>
+
+    <!-- Recent issues & weekly summary -->
+    <div id="imputar-context" style="display:none;margin-bottom:1.5rem;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <!-- Recent issues -->
+        <div>
+          <div style="font-family:var(--mono);font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📌 Issues recientes (últimos 7 días)</div>
+          <div id="recent-issues-list" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        </div>
+        <!-- Weekly summary -->
+        <div>
+          <div style="font-family:var(--mono);font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📅 Esta semana</div>
+          <div id="weekly-summary" style="display:flex;gap:6px;"></div>
+        </div>
       </div>
     </div>
 
@@ -459,6 +475,7 @@ function saveToken(){
   logUserEmail = e;
   document.getElementById('personalToken').value='';
   checkTokenStatus();
+  loadImputarContext();
   alert('Credenciales guardadas en tu navegador ✓');
 }
 
@@ -478,10 +495,87 @@ function checkTokenStatus(){
     el.style.color = 'var(--green)';
     document.getElementById('logEmail').value = e;
     logUserEmail = e;
+    loadImputarContext();
   } else {
     el.textContent = 'No configurado';
     el.style.color = 'var(--muted)';
   }
+}
+
+async function loadImputarContext(){
+  const token = getPersonalToken();
+  if(!token || !logUserEmail) return;
+
+  // Get last 7 days range
+  const now = new Date();
+  const from = new Date(now); from.setDate(now.getDate()-6);
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const df = fmt(from), dt = fmt(now);
+
+  try {
+    const params = new URLSearchParams({action:'personal', user:logUserEmail, dateFrom:df, dateTo:dt});
+    const r = await fetch(`/api/worklogs?${params}`);
+    if(!r.ok) return;
+    const data = await r.json();
+    const wls = data.worklogs || [];
+
+    // Build issue map
+    const issueMap = {};
+    const dailyMap = {};
+    for(const wl of wls){
+      if(!issueMap[wl.issueKey]) issueMap[wl.issueKey] = wl.issueSummary || wl.issueKey;
+      const d = wl.started.split('T')[0];
+      dailyMap[d] = (dailyMap[d]||0) + (wl.timeSpentSeconds||0);
+    }
+
+    // Render recent issues as clickable chips
+    const issuesList = document.getElementById('recent-issues-list');
+    const keys = Object.keys(issueMap);
+    if(keys.length){
+      issuesList.innerHTML = keys.map(k=>`
+        <button onclick="selectRecentIssue('${k}','${issueMap[k].replace(/'/g,"\'")}')"
+          style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;
+          font-family:var(--mono);font-size:.75rem;color:var(--accent);cursor:pointer;transition:all .2s;"
+          onmouseover="this.style.borderColor='var(--accent)'"
+          onmouseout="this.style.borderColor='var(--border)'">
+          ${k}
+        </button>
+      `).join('');
+    } else {
+      issuesList.innerHTML = '<span style="font-size:.8rem;color:var(--muted)">Sin imputaciones esta semana</span>';
+    }
+
+    // Render weekly summary
+    const days = [];
+    const cur = new Date(from);
+    while(cur <= now){ days.push(fmt(cur)); cur.setDate(cur.getDate()+1); }
+    const dow = ['D','L','M','X','J','V','S'];
+    const weekly = document.getElementById('weekly-summary');
+    weekly.innerHTML = days.map(d=>{
+      const dd = new Date(d+'T00:00:00');
+      const isWE = dd.getDay()===0||dd.getDay()===6;
+      const secs = dailyMap[d]||0;
+      const h = secs ? (secs/3600).toFixed(1) : '—';
+      let bg='var(--surface2)', color='var(--muted)';
+      if(secs >= 8*3600) { bg='rgba(34,197,94,.15)'; color='var(--green)'; }
+      else if(secs > 0) { bg='rgba(245,158,11,.15)'; color='var(--yellow)'; }
+      else if(!isWE) { bg='rgba(239,68,68,.08)'; color='var(--red)'; }
+      return `<div style="flex:1;background:${bg};border-radius:8px;padding:8px 4px;text-align:center;min-width:36px;">
+        <div style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">${dow[dd.getDay()]}</div>
+        <div style="font-family:var(--mono);font-size:.7rem;margin-top:1px">${d.slice(8)}/${d.slice(5,7)}</div>
+        <div style="font-family:var(--mono);font-size:.8rem;font-weight:600;color:${color};margin-top:3px">${h}</div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('imputar-context').style.display='block';
+  } catch(e){ console.log('Context load error:', e); }
+}
+
+function selectRecentIssue(key, summary){
+  document.getElementById('issueSearch').value = key;
+  selectedIssueKey = key;
+  document.getElementById('issueResult').innerHTML = `<span style="color:var(--accent)">${key}</span> — ${summary}`;
+  document.getElementById('issueResult').style.color = 'var(--text)';
 }
 
 function getPersonalToken(){
