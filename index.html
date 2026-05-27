@@ -318,6 +318,10 @@ function switchTab(tab){
     }
   });
   if(tab==='imputar') checkTokenStatus();
+  if(tab==='personal'){
+    const savedEmail = localStorage.getItem('jira_log_email');
+    if(savedEmail) document.getElementById('jiraUser').value = savedEmail;
+  }
 }
 
 // Move manager content on load
@@ -356,6 +360,11 @@ function setRangeP(type){
 }
 
 async function runPersonal(){
+  // Auto-fill from saved token if available
+  const savedEmail = localStorage.getItem('jira_log_email');
+  if(savedEmail && !document.getElementById('jiraUser').value.trim()){
+    document.getElementById('jiraUser').value = savedEmail;
+  }
   const username=document.getElementById('jiraUser').value.trim().toLowerCase();
   const df=document.getElementById('pDateFrom').value;
   const dt=document.getElementById('pDateTo').value;
@@ -513,11 +522,13 @@ async function loadImputarContext(){
   const df = fmt(from), dt = fmt(now);
 
   try {
+    // Use server endpoint with user's email to get recent worklogs
     const params = new URLSearchParams({action:'personal', user:logUserEmail, dateFrom:df, dateTo:dt});
     const r = await fetch(`/api/worklogs?${params}`);
     if(!r.ok) return;
     const data = await r.json();
     const wls = data.worklogs || [];
+    console.log('Recent worklogs loaded:', wls.length);
 
     // Build issue map
     const issueMap = {};
@@ -712,6 +723,21 @@ const last=new Date(y,now.getMonth()+1,0).getDate();
 document.getElementById('dateTo').value=`${y}-${mo}-${String(last).padStart(2,'0')}`;
 // Init personal dates too
 setRangeP('thisMonth');
+
+// Pre-fill email in Mi Tiempo from saved credentials
+window.addEventListener('DOMContentLoaded', ()=>{
+  const savedEmail = localStorage.getItem('jira_log_email');
+  if(savedEmail){
+    const jiraUserEl = document.getElementById('jiraUser');
+    if(jiraUserEl) jiraUserEl.value = savedEmail;
+  }
+  // Set today's date in log form
+  const logDateEl = document.getElementById('logDate');
+  if(logDateEl){
+    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    logDateEl.value = today;
+  }
+});
 
 let gData=[],gDaily={};
 let selectedGroups=new Set();
