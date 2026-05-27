@@ -80,6 +80,21 @@ export default async function handler(req, res) {
       return res.status(200).json({ worklogs: allWorklogs, displayName: match.displayName });
     }
 
+    // ── Get group members ────────────────────────────────────
+    if (action === 'groupMembers') {
+      const groupList = (groups || '').split(',').map(g => g.trim()).filter(Boolean);
+      const allMembers = new Set();
+      for (const group of groupList) {
+        const url = `${JIRA_URL}/rest/api/3/group/member?groupname=${encodeURIComponent(group)}&maxResults=100`;
+        const r = await fetch(url, { headers });
+        if (r.ok) {
+          const data = await r.json();
+          (data.values || []).forEach(u => allMembers.add(u.accountId));
+        }
+      }
+      return res.status(200).json({ accountIds: [...allMembers] });
+    }
+
     // ── Search (manager view) ────────────────────────────────
     if (action === 'search') {
       const startAt = parseInt(req.query.startAt || '0');
@@ -104,9 +119,27 @@ export default async function handler(req, res) {
       jqlParts.push(`worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}"`);
       const jql = jqlParts.join(' AND ');
 
+      // Also pass group member accountIds for frontend filtering
+      let groupMemberIds = null;
+      if (groups) {
+        const groupList = groups.split(',').map(g => g.trim()).filter(Boolean);
+        const allMembers = new Set();
+        for (const group of groupList) {
+          const gUrl = `${JIRA_URL}/rest/api/3/group/member?groupname=${encodeURIComponent(group)}&maxResults=500`;
+          const gR = await fetch(gUrl, { headers });
+          if (gR.ok) {
+            const gData = await gR.json();
+            (gData.values || []).forEach(u => allMembers.add(u.accountId));
+          }
+        }
+        groupMemberIds = [...allMembers];
+      }
+
       const url = `${JIRA_URL}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&startAt=${startAt}&maxResults=100&fields=summary,worklog`;
       const r = await fetch(url, { headers });
       const data = await r.json();
+      // Attach group member ids so frontend can filter worklogs
+      if (groupMemberIds) data._groupMemberIds = groupMemberIds;
       return res.status(r.status).json(data);
     }
 
