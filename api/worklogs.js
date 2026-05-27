@@ -31,7 +31,6 @@ export default async function handler(req, res) {
 
     // ── Personal view ────────────────────────────────────────
     if (action === 'personal') {
-      // Step 1: resolve email to accountId
       const searchUrl = `${JIRA_URL}/rest/api/3/user/search?query=${encodeURIComponent(user)}&maxResults=10`;
       const searchR = await fetch(searchUrl, { headers });
       const users = await searchR.json();
@@ -41,7 +40,6 @@ export default async function handler(req, res) {
       const match = users[0];
       const accountId = match.accountId;
 
-      // Step 2: search issues with worklogs by this user
       const jql = `worklogAuthor = "${accountId}" AND worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}"`;
       let allWorklogs = [];
       let startAt = 0;
@@ -80,12 +78,12 @@ export default async function handler(req, res) {
       return res.status(200).json({ worklogs: allWorklogs, displayName: match.displayName });
     }
 
-    // ── Get group members ────────────────────────────────────
+    // ── Get group members ─────────────────────────────────────
     if (action === 'groupMembers') {
       const groupList = (groups || '').split(',').map(g => g.trim()).filter(Boolean);
       const allMembers = new Set();
       for (const group of groupList) {
-        const url = `${JIRA_URL}/rest/api/3/group/member?groupname=${encodeURIComponent(group)}&maxResults=100`;
+        const url = `${JIRA_URL}/rest/api/3/group/member?groupname=${encodeURIComponent(group)}&maxResults=500`;
         const r = await fetch(url, { headers });
         if (r.ok) {
           const data = await r.json();
@@ -100,26 +98,30 @@ export default async function handler(req, res) {
       const startAt = parseInt(req.query.startAt || '0');
       let jqlParts = [];
 
+      // STRATEGY: if groups selected, filter by worklogAuthor in group (fast)
+      // Projects become optional additional filter
+      if (groups) {
+        const groupList = groups.split(',').map(g => g.trim()).filter(Boolean);
+        if (groupList.length === 1) {
+          jqlParts.push(`worklogAuthor in membersOf("${groupList[0]}")`);
+        } else {
+          const groupJql = groupList.map(g => `worklogAuthor in membersOf("${g}")`).join(' OR ');
+          jqlParts.push(`(${groupJql})`);
+        }
+      }
+
+      // Projects filter only if explicitly selected
       if (project) {
         const projects = project.split(',').map(p => p.trim()).filter(Boolean);
         if (projects.length === 1) jqlParts.push(`project = "${projects[0]}"`);
         else if (projects.length > 1) jqlParts.push(`project in (${projects.map(p => `"${p}"`).join(', ')})`);
       }
 
-      if (groups) {
-        const groupList = groups.split(',').map(g => g.trim()).filter(Boolean);
-        if (groupList.length === 1) {
-          jqlParts.push(`worklogAuthor in membersOf("${groupList[0]}")`);
-        } else if (groupList.length > 1) {
-          const groupJql = groupList.map(g => `worklogAuthor in membersOf("${g}")`).join(' OR ');
-          jqlParts.push(`(${groupJql})`);
-        }
-      }
-
+      // Date filter always
       jqlParts.push(`worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}"`);
       const jql = jqlParts.join(' AND ');
 
-      // Also pass group member accountIds for frontend filtering
+      // Get group member ids for frontend filtering
       let groupMemberIds = null;
       if (groups) {
         const groupList = groups.split(',').map(g => g.trim()).filter(Boolean);
@@ -138,7 +140,6 @@ export default async function handler(req, res) {
       const url = `${JIRA_URL}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&startAt=${startAt}&maxResults=100&fields=summary,worklog`;
       const r = await fetch(url, { headers });
       const data = await r.json();
-      // Attach group member ids so frontend can filter worklogs
       if (groupMemberIds) data._groupMemberIds = groupMemberIds;
       return res.status(r.status).json(data);
     }
