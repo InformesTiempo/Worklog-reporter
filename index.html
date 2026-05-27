@@ -531,7 +531,7 @@ async function searchIssue(){
 
 async function logWork(){
   const token = getPersonalToken();
-  if(!token){ssLog('⚠ Configura tu token primero','error');return;}
+  if(!token){ssLog('⚠ Configura tu email y token primero','error');return;}
   if(!selectedIssueKey){ssLog('⚠ Busca y selecciona un issue primero','error');return;}
 
   const timeStr = document.getElementById('logTime').value.trim();
@@ -546,36 +546,28 @@ async function logWork(){
 
   ssLog('⏳ Registrando...','loading');
 
-  const auth = btoa((logUserEmail||'') + ':' + token);
-  const body = {
-    timeSpentSeconds: secs,
-    started: date + 'T09:00:00.000+0000'
-  };
-  if(comment) body.comment = {
-    type: 'doc', version: 1,
-    content: [{ type: 'paragraph', content: [{ type: 'text', text: comment }] }]
-  };
-
   try {
-    const r = await fetch(`https://7education.atlassian.net/rest/api/3/issue/${selectedIssueKey}/worklog`, {
+    // Pass through Vercel proxy to avoid CORS
+    const r = await fetch('/api/worklogs?action=logWork', {
       method: 'POST',
-      headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        issueKey: selectedIssueKey,
+        timeSpentSeconds: secs,
+        date,
+        comment,
+        userEmail: logUserEmail,
+        userToken: token
+      })
     });
     if(!r.ok){
       const e = await r.json();
-      throw new Error(e.errorMessages?.[0] || `Error ${r.status}`);
+      throw new Error(e.error || e.errorMessages?.[0] || `Error ${r.status}`);
     }
-    const data = await r.json();
     ssLog(`✓ ${timeStr} registrado en ${selectedIssueKey}`, 'success');
-
-    // Add to recent logs
     addRecentLog(selectedIssueKey, timeStr, date, comment);
-
-    // Clear form
     document.getElementById('logTime').value='';
     document.getElementById('logComment').value='';
-
   } catch(e){
     ssLog('✗ ' + e.message, 'error');
   }
