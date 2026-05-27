@@ -98,9 +98,9 @@
     <div class="card-title">👤 Mi tiempo en Jira</div>
     <div class="grid-3" style="margin-bottom:1rem;align-items:end;">
       <div>
-        <span class="field-label">Tu usuario de Jira</span>
-        <input type="text" id="jiraUser" placeholder="nombre.apellido" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;">
-        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">Tu nombre de usuario de Jira (sin @educamos.com)</div>
+        <span class="field-label">Tu email de Jira</span>
+        <input type="email" id="jiraUser" placeholder="nombre.apellido@educamos.com" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;">
+        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">El email con el que entras a Jira</div>
       </div>
       <div>
         <span class="field-label">Rango de fechas</span>
@@ -141,17 +141,8 @@
 
 <!-- Manager Tab (hidden by default) -->
 <div id="pane-manager" style="display:none;">
-  <!-- Lock screen -->
-  <div id="manager-lock" class="card" style="max-width:400px;margin:4rem auto;text-align:center;">
-    <div style="font-size:3rem;margin-bottom:1rem;">🔒</div>
-    <div style="font-family:var(--mono);font-size:1rem;margin-bottom:.5rem;">Acceso Managers</div>
-    <div style="font-size:.85rem;color:var(--muted);margin-bottom:1.5rem;">Esta sección es solo para responsables de equipo</div>
-    <input type="password" id="managerPass" placeholder="Contraseña de manager" onkeydown="if(event.key==='Enter')checkPass()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;margin-bottom:1rem;">
-    <div id="passError" style="display:none;color:var(--red);font-size:.8rem;font-family:var(--mono);margin-bottom:1rem;">❌ No tienes acceso de manager</div>
-    <button class="btn" onclick="checkPass()" style="width:100%">🔓 Entrar</button>
-  </div>
-  <!-- Manager content (hidden until authenticated) -->
-  <div id="manager-content" style="display:none;"></div>
+  <!-- Manager content - direct access for now -->
+  <div id="manager-content"></div>
 </div>
 
 <div id="manager-main"><div class="card">
@@ -242,9 +233,6 @@
 
 <script>
 // ── Tab switching ──────────────────────────────
-const MANAGER_PASS = 'ManagmetsEducamos';
-let managerUnlocked = false;
-
 function switchTab(tab){
   document.getElementById('pane-personal').style.display = tab==='personal'?'block':'none';
   document.getElementById('pane-manager').style.display = tab==='manager'?'block':'none';
@@ -254,22 +242,12 @@ function switchTab(tab){
   document.getElementById('tab-manager').style.color = tab==='manager'?'#fff':'var(--muted)';
 }
 
-function checkPass(){
-  const val = document.getElementById('managerPass').value;
-  if(val === MANAGER_PASS){
-    managerUnlocked = true;
-    document.getElementById('manager-lock').style.display='none';
-    // Move manager-main into manager-content
-    const mc = document.getElementById('manager-content');
-    const mm = document.getElementById('manager-main');
-    if(mm) mc.appendChild(mm);
-    mc.style.display='block';
-  } else {
-    document.getElementById('passError').style.display='block';
-    document.getElementById('managerPass').value='';
-    setTimeout(()=>document.getElementById('passError').style.display='none', 3000);
-  }
-}
+// Move manager content on load
+window.addEventListener('DOMContentLoaded', () => {
+  const mc = document.getElementById('manager-content');
+  const mm = document.getElementById('manager-main');
+  if(mm && mc) mc.appendChild(mm);
+});
 
 // ── Personal view ───────────────────────────────
 function ssP(msg,t){
@@ -300,25 +278,18 @@ function setRangeP(type){
 }
 
 async function runPersonal(){
-  const username=document.getElementById('jiraUser').value.trim();
+  const username=document.getElementById('jiraUser').value.trim().toLowerCase();
   const df=document.getElementById('pDateFrom').value;
   const dt=document.getElementById('pDateTo').value;
   if(!username){ssP('⚠ Introduce tu usuario de Jira','error');return;}
   if(!df||!dt){ssP('⚠ Indica las fechas','error');return;}
 
-  ssP('⏳ Buscando tu usuario...','loading');
+  ssP('⏳ Buscando tus imputaciones...','loading');
   document.getElementById('pResults').style.display='none';
 
   try{
-    // First resolve username to accountId
-    const lookupR=await fetch(`/api/worklogs?action=findUser&username=${encodeURIComponent(username)}`);
-    if(!lookupR.ok){
-      const e=await lookupR.json();
-      throw new Error(e.error||`Usuario "${username}" no encontrado`);
-    }
-    const userData=await lookupR.json();
-    const user=userData.accountId;
-    ssP(`⏳ Buscando imputaciones de ${userData.displayName}...`,'loading');
+    // Use email directly
+    const user=username;
 
     // Fetch worklogs for this user
     const params=new URLSearchParams({action:'personal',user,dateFrom:df,dateTo:dt});
