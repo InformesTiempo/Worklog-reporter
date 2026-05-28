@@ -28,7 +28,7 @@ async function kvSet(key, value) {
 }
 
 // ── Jira helpers ──────────────────────────────────────────────────────────
-const JIRA_BASE = 'https://jira.grupo-sm.com';
+const JIRA_BASE = 'https://7education.atlassian.net';
 
 async function jiraFetch(path, email, token, options = {}) {
   const auth = Buffer.from(`${email}:${token}`).toString('base64');
