@@ -196,12 +196,17 @@ async function getPersonalWorklogs(query) {
 
 // ── searchByPerson: worklogs por grupos ───────────────────────────────────
 async function searchByPerson(query) {
-  const { groups, dateFrom, dateTo, project, user } = query;
+  const { groups, dateFrom, dateTo, project, user, userToken } = query;
   if (!groups || !user) return { error: 'Faltan grupos o user' };
 
-  const record = await kvGet(`wl:${user.toLowerCase()}`);
-  if (!record) return { error: 'No autenticado' };
-  const { email: authEmail, token: authToken } = record;
+  let authEmail = user;
+  let authToken = userToken;
+  if (!authToken) {
+    const record = await kvGet(`wl:${user.toLowerCase()}`);
+    if (!record) return { error: 'No autenticado' };
+    authEmail = record.email;
+    authToken = record.token;
+  }
 
   const groupList = groups.split(',').map(g => g.trim()).filter(Boolean);
   const members = new Map();
@@ -214,15 +219,17 @@ async function searchByPerson(query) {
     if (!res.ok) continue;
     const data = await res.json();
     for (const u of data.values || []) {
-      members.set(u.emailAddress, u.displayName || u.emailAddress);
+      // Guardar accountId para usarlo en JQL (Jira Cloud no acepta email)
+      members.set(u.accountId, { displayName: u.displayName || u.emailAddress, email: u.emailAddress });
     }
   }
 
   if (members.size === 0) return { personWorklogs: {} };
 
   const personWorklogs = {};
-  for (const [memberEmail, displayName] of members) {
-    let jql = `worklogAuthor = "${memberEmail}" AND worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}"`;
+  for (const [accountId, memberInfo] of members) {
+    const { displayName, email: memberEmail } = memberInfo;
+    let jql = `worklogAuthor = "${accountId}" AND worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}"`;
     if (project) {
       const projs = project.split(',').map(p => `"${p.trim()}"`).join(',');
       jql += ` AND project in (${projs})`;
@@ -245,7 +252,7 @@ async function searchByPerson(query) {
         if (wRes.ok) { const wd = await wRes.json(); wls = wd.worklogs || []; }
       }
       for (const wl of wls) {
-        if ((wl.author?.emailAddress || '').toLowerCase() !== memberEmail.toLowerCase()) continue;
+        if ((wl.author?.accountId || '') !== accountId) continue;
         const started = new Date(wl.started);
         if (started < from || started > to) continue;
         totalSecs += wl.timeSpentSeconds;
@@ -253,7 +260,7 @@ async function searchByPerson(query) {
         dailyMap[day] = (dailyMap[day] || 0) + wl.timeSpentSeconds;
       }
     }
-    personWorklogs[displayName] = { totalSecs, dailyMap, email: memberEmail };
+    personWorklogs[displayName] = { totalSecs, dailyMap, email: memberEmail || accountId };
   }
 
   return { personWorklogs };
