@@ -425,6 +425,7 @@ async function runPersonal(){
     for(const wl of worklogs){
       const key=wl.issueKey;
       const ds=wl.started.split('T')[0];
+      if(ds < df || ds > dt) continue; // filter to selected range only
       const secs=wl.timeSpentSeconds||0;
       if(!issueMap[key]) issueMap[key]={summary:wl.issueSummary||key,days:{},total:0};
       issueMap[key].days[ds]=(issueMap[key].days[ds]||0)+secs;
@@ -614,11 +615,12 @@ async function loadImputarContext(){
       </div>`;
     }).join('');
 
-    // Build issue-day map for detail table
+    // Build issue-day map for detail table — only for dates in range
     const issueDayMap = {};
     for(const wl of wls){
       const k = wl.issueKey;
       const d = wl.started.split('T')[0];
+      if(d < df || d > dt) continue; // skip dates outside range
       const s = wl.timeSpentSeconds||0;
       if(!issueDayMap[k]) issueDayMap[k] = { summary: wl.issueSummary||k, days:{}, total:0 };
       issueDayMap[k].days[d] = (issueDayMap[k].days[d]||0) + s;
