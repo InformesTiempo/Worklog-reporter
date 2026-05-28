@@ -145,24 +145,44 @@
   <div class="card">
     <div class="card-title">⏱ Registrar tiempo en Jira</div>
 
-    <!-- Token config -->
+    <!-- Login / Register -->
     <div id="token-setup" style="margin-bottom:1.5rem;padding:1rem;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <span style="font-family:var(--mono);font-size:.8rem;color:var(--muted);">🔑 Tu acceso a Jira</span>
         <span id="token-status" style="font-size:.75rem;font-family:var(--mono);color:var(--muted);">No configurado</span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:center;">
-        <input type="email" id="logEmail" placeholder="Introduce tu correo de Jira aquí" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;">
-        <div style="position:relative;flex:1">
-          <input type="text" id="personalToken" placeholder="Tu API token de Jira" autocomplete="off"
-            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;padding-right:40px;">
-          <button onclick="toggleTokenVisibility()" id="tokenEye" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem;">👁</button>
+
+      <!-- Login form (default) -->
+      <div id="login-form">
+        <div style="display:grid;grid-template-columns:1fr 120px auto;gap:8px;align-items:center;">
+          <input type="email" id="logEmail" placeholder="Tu email de Jira" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;">
+          <input type="password" id="loginPin" placeholder="PIN (4 dígitos)" maxlength="4" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;text-align:center;letter-spacing:4px;" onkeydown="if(event.key==='Enter')doLogin()">
+          <button onclick="doLogin()" class="btn" style="padding:8px 16px;font-size:.82rem;">Entrar</button>
         </div>
-        <button onclick="saveToken()" class="btn" style="padding:8px 16px;font-size:.82rem;">Guardar</button>
-        <button onclick="clearToken()" class="btn btn-sec" style="padding:8px 16px;font-size:.82rem;">Borrar</button>
+        <div style="margin-top:8px;font-size:.72rem;color:var(--muted);">
+          ¿Primera vez? <a href="#" onclick="showRegister();return false;" style="color:var(--accent);">Regístrate aquí</a>
+        </div>
       </div>
-      <div style="font-size:.72rem;color:var(--muted);margin-top:6px;">
-        Genera tu token en <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" style="color:var(--accent);">id.atlassian.com</a> — se guarda solo en tu navegador
+
+      <!-- Register form (hidden) -->
+      <div id="register-form" style="display:none;">
+        <div style="font-size:.8rem;color:var(--text);margin-bottom:8px;font-family:var(--mono);">Registro — solo la primera vez</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 100px;gap:8px;margin-bottom:8px;">
+          <input type="email" id="regEmail" placeholder="Tu email de Jira" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;">
+          <input type="text" id="regToken" placeholder="Tu API token de Jira" autocomplete="off" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;">
+          <input type="password" id="regPin" placeholder="PIN 4 dig." maxlength="4" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;text-align:center;letter-spacing:4px;">
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="doRegister()" class="btn" style="padding:8px 16px;font-size:.82rem;">Guardar y entrar</button>
+          <button onclick="showLogin()" class="btn btn-sec" style="padding:8px 16px;font-size:.82rem;">Cancelar</button>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:6px;">
+          Token en <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" style="color:var(--accent);">id.atlassian.com</a> · El PIN lo eliges tú, solo tú lo sabrás
+        </div>
+      </div>
+
+      <div id="logout-bar" style="display:none;margin-top:8px;">
+        <button onclick="doLogout()" class="btn btn-sec" style="padding:4px 12px;font-size:.75rem;">Cerrar sesión</button>
       </div>
     </div>
 
@@ -348,7 +368,7 @@ function switchTab(tab){
   });
   if(tab==='imputar') checkTokenStatus();
   if(tab==='personal'){
-    const savedEmail = getCookie('jira_email');
+    const savedEmail = sessionStorage.getItem('jira_email') || localStorage.getItem('jira_email_bk');
     if(savedEmail) document.getElementById('jiraUser').value = savedEmail;
   }
 }
@@ -504,48 +524,103 @@ function exportPersonalCSV(){
 
 // ── Imputar (log work) ─────────────────────────
 
-function toggleTokenVisibility(){
-  const input = document.getElementById('personalToken');
-  input.type = input.type === 'text' ? 'password' : 'text';
+function showRegister(){ document.getElementById('login-form').style.display='none'; document.getElementById('register-form').style.display='block'; }
+function showLogin(){ document.getElementById('login-form').style.display='block'; document.getElementById('register-form').style.display='none'; }
+
+async function doRegister(){
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const token = document.getElementById('regToken').value.trim();
+  const pin = document.getElementById('regPin').value.trim();
+  if(!email||!token||!pin){ alert('Completa todos los campos'); return; }
+  if(!/^\d{4}$/.test(pin)){ alert('El PIN debe ser exactamente 4 dígitos'); return; }
+  try{
+    const r = await fetch('/api/worklogs?action=saveCredentials', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, token, pin})
+    });
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.error||'Error al guardar');
+    // Auto login after register
+    await loginWithData(email, token);
+    alert('✓ Registro completado. Ya puedes usar la app.');
+  }catch(e){ alert('Error: '+e.message); }
 }
 
-function saveToken(){
-  // Use captured value or field value - handles Chrome autocomplete issue
-  const fieldVal = document.getElementById('personalToken').value.trim();
-  const t = fieldVal || capturedToken.trim();
-  const e = document.getElementById('logEmail').value.trim();
-  if(!t||!e){alert('Introduce tu email y token');return;}
-  localStorage.setItem('jira_personal_token', t);
-  localStorage.setItem('jira_log_email', e);
-  logUserEmail = e;
-  document.getElementById('personalToken').value='';
-  checkTokenStatus();
+async function doLogin(){
+  const email = document.getElementById('logEmail').value.trim().toLowerCase();
+  const pin = document.getElementById('loginPin').value.trim();
+  if(!email||!pin){ alert('Introduce tu email y PIN'); return; }
+  try{
+    const r = await fetch('/api/worklogs?action=login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, pin})
+    });
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.error||'Error al iniciar sesión');
+    // Decode sessionToken to get the actual token
+    const decoded = atob(d.sessionToken);
+    const userToken = decoded.split(':').slice(1).join(':');
+    await loginWithData(email, userToken);
+  }catch(e){ alert('Error: '+e.message); }
+}
+
+async function loginWithData(email, token){
+  logUserEmail = email;
+  // Store in sessionStorage (tab-based, no browser restrictions)
+  sessionStorage.setItem('jira_email', email);
+  sessionStorage.setItem('jira_token', token);
+  // Also try localStorage as backup
+  try{ localStorage.setItem('jira_email_bk', email); localStorage.setItem('jira_token_bk', token); }catch(e){}
+  updateLoginUI(email);
   loadImputarContext();
-  alert('Credenciales guardadas en tu navegador ✓');
 }
 
-function clearToken(){
-  localStorage.removeItem('jira_personal_token');
-  localStorage.removeItem('jira_log_email');
+function doLogout(){
   logUserEmail = '';
-  checkTokenStatus();
+  sessionStorage.removeItem('jira_email');
+  sessionStorage.removeItem('jira_token');
+  try{ localStorage.removeItem('jira_email_bk'); localStorage.removeItem('jira_token_bk'); }catch(e){}
+  updateLoginUI(null);
+  document.getElementById('imputar-context').style.display='none';
+  document.getElementById('imputar-detail').style.display='none';
+}
+
+function updateLoginUI(email){
+  const status = document.getElementById('token-status');
+  const logoutBar = document.getElementById('logout-bar');
+  const loginForm = document.getElementById('login-form');
+  if(email){
+    status.textContent = '✓ Configurado como ' + email;
+    status.style.color = 'var(--green)';
+    logoutBar.style.display = 'block';
+    loginForm.style.display = 'none';
+  } else {
+    status.textContent = 'No configurado';
+    status.style.color = 'var(--muted)';
+    logoutBar.style.display = 'none';
+    loginForm.style.display = 'block';
+    showLogin();
+  }
 }
 
 function checkTokenStatus(){
-  const t = getCookie('jira_token') || localStorage.getItem('jira_token_bk');
-  const e = getCookie('jira_email') || localStorage.getItem('jira_email_bk');
-  const el = document.getElementById('token-status');
-  if(t && e){
-    el.textContent = '✓ Configurado como ' + e;
-    el.style.color = 'var(--green)';
-    document.getElementById('logEmail').value = e;
-    logUserEmail = e;
+  // Try sessionStorage first, then localStorage backup
+  const email = sessionStorage.getItem('jira_email') || localStorage.getItem('jira_email_bk');
+  const token = sessionStorage.getItem('jira_token') || localStorage.getItem('jira_token_bk');
+  if(email && token){
+    logUserEmail = email;
+    updateLoginUI(email);
     loadImputarContext();
-  } else {
-    el.textContent = 'No configurado';
-    el.style.color = 'var(--muted)';
   }
 }
+
+function getPersonalToken(){
+  return sessionStorage.getItem('jira_token') || localStorage.getItem('jira_token_bk') || null;
+}
+
+function saveToken(){ /* legacy - not used */ }
+function clearToken(){ doLogout(); }
+function toggleTokenVisibility(){ /* legacy */ }
 
 async function loadImputarContext(){
   const token = getPersonalToken();
@@ -755,7 +830,7 @@ async function searchIssue(){
 
 async function logWork(){
   const token = getPersonalToken();
-  if(!token){ssLog('⚠ Configura tu email y token primero','error');return;}
+  if(!token){ssLog('⚠ Inicia sesión primero con tu email y PIN','error');return;}
   if(!selectedIssueKey){ssLog('⚠ Busca y selecciona un issue primero','error');return;}
 
   const timeStr = document.getElementById('logTime').value.trim();
@@ -831,7 +906,7 @@ setRangeP('thisMonth');
 
 // Pre-fill email in Mi Tiempo from saved credentials
 window.addEventListener('DOMContentLoaded', ()=>{
-  const savedEmail = getCookie('jira_email');
+  const savedEmail = sessionStorage.getItem('jira_email') || localStorage.getItem('jira_email_bk');
   if(savedEmail){
     const jiraUserEl = document.getElementById('jiraUser');
     if(jiraUserEl) jiraUserEl.value = savedEmail;
