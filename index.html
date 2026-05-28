@@ -354,7 +354,7 @@ function deleteCookie(name){
   document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`;
 }
 
-let logUserEmail = getCookie('jira_email') || localStorage.getItem('jira_email_bk') || '';
+let logUserEmail = sessionStorage.getItem('jira_email') || getCookie('jira_email') || localStorage.getItem('jira_email_bk') || '';
 let capturedToken = '';
 
 // ── Tab switching ──────────────────────────────
