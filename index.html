@@ -557,6 +557,10 @@ async function searchIssue(){
 
 function parseTime(str){
   str=str.trim().toLowerCase();
+  // Detectar entradas raras tipo "3,45m" o "3.45m" (decimal antes de m) — los minutos siempre son enteros
+  if(/\d+[.,]\d+m\b/.test(str)){
+    return -1; // marcador de entrada inválida
+  }
   let secs=0;
   const hM=str.match(/(\d+[.,]?\d*)h/);
   const mM=str.match(/(\d+)m/);
@@ -580,7 +584,8 @@ async function logWork(){
   if(!timeStr){ssLog('⚠ Introduce el tiempo','error');return;}
   if(!date){ssLog('⚠ Selecciona una fecha','error');return;}
   const secs=parseTime(timeStr);
-  if(secs<60){ssLog('⚠ Mínimo 1 minuto','error');return;}
+  if(secs===-1){ssLog('⚠ Formato no válido. Los minutos deben ser un número entero. Ej: "3h 45m", "1,5h" o "45m"','error');return;}
+  if(secs<60){ssLog('⚠ Mínimo 1 minuto. Usa formato: "3h 45m", "1,5h" o "45m"','error');return;}
   ssLog('⏳ Registrando...','loading');
   try{
     const r=await fetch('/api/worklogs?action=logWork',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({issueKey:selectedIssueKey,timeSpentSeconds:secs,date,comment,userEmail:logUserEmail,userToken:token})});
