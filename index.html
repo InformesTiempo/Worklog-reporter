@@ -335,7 +335,7 @@ function deleteCookie(name){
   document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`;
 }
 
-let logUserEmail = getCookie('jira_email') || '';
+let logUserEmail = getCookie('jira_email') || localStorage.getItem('jira_email_bk') || '';
 let capturedToken = '';
 
 // ── Tab switching ──────────────────────────────
@@ -534,8 +534,8 @@ function clearToken(){
 }
 
 function checkTokenStatus(){
-  const t = getCookie('jira_token');
-  const e = getCookie('jira_email');
+  const t = getCookie('jira_token') || localStorage.getItem('jira_token_bk');
+  const e = getCookie('jira_email') || localStorage.getItem('jira_email_bk');
   const el = document.getElementById('token-status');
   if(t && e){
     el.textContent = '✓ Configurado como ' + e;
@@ -697,7 +697,7 @@ function selectRecentIssue(key, summary){
 }
 
 function getPersonalToken(){
-  return getCookie('jira_token');
+  return getCookie('jira_token') || localStorage.getItem('jira_token_bk') || null;
 }
 
 function parseTime(str){
