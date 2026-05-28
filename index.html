@@ -189,7 +189,7 @@
       <div>
         <!-- Recent issues full width -->
         <div>
-          <div style="font-family:var(--mono);font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📌 Issues recientes (últimos 7 días)</div>
+          <div style="font-family:var(--mono);font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📌 Issues recientes (este mes)</div>
           <div id="recent-issues-list" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
         </div>
 
@@ -240,7 +240,7 @@
 
   <!-- Full weekly detail table -->
   <div class="card" id="imputar-detail" style="display:none;">
-    <div class="card-title">📋 Detalle últimos 7 días</div>
+    <div class="card-title" id="imputar-detail-title">📋 Detalle del mes</div>
     <div style="overflow-x:auto;">
       <table id="imputar-detail-table" class="dtable" style="width:100%;border-collapse:collapse;font-size:.82rem;"></table>
     </div>
@@ -619,9 +619,9 @@ async function loadImputarContext(){
   const token = getPersonalToken();
   if(!token || !logUserEmail) return;
 
-  // Get last 7 days range
+  // Mes actual completo
   const now = new Date();
-  const from = new Date(now); from.setDate(now.getDate()-6);
+  const from = new Date(now.getFullYear(), now.getMonth(), 1); // primer día del mes
   const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const df = fmt(from), dt = fmt(now);
 
@@ -663,7 +663,7 @@ async function loadImputarContext(){
         </button>`;
       }).join('');
     } else {
-      issuesList.innerHTML = '<span style="font-size:.8rem;color:var(--muted)">Sin imputaciones esta semana</span>';
+      issuesList.innerHTML = '<span style="font-size:.8rem;color:var(--muted)">Sin imputaciones este mes</span>';
     }
 
     // Build daily totals and issue-day map
@@ -672,23 +672,19 @@ async function loadImputarContext(){
     while(cur2 <= now){ days.push(fmt(cur2)); cur2.setDate(cur2.getDate()+1); }
     const dow = ['D','L','M','X','J','V','S'];
 
-    // Weekly summary pills
+    // Resumen del mes en el weekly-summary
     const weekly = document.getElementById('weekly-summary');
-    if(weekly) weekly.innerHTML = days.map(d=>{
-      const dd = new Date(d+'T00:00:00');
-      const isWE = dd.getDay()===0||dd.getDay()===6;
-      const secs = dailyMap[d]||0;
-      const h = secs ? (secs/3600).toFixed(1) : '—';
-      let bg='var(--surface2)', color='var(--muted)';
-      if(secs >= 8*3600){ bg='rgba(34,197,94,.15)'; color='var(--green)'; }
-      else if(secs > 0){ bg='rgba(245,158,11,.15)'; color='var(--yellow)'; }
-      else if(!isWE){ bg='rgba(239,68,68,.08)'; color='var(--red)'; }
-      return `<div style="flex:1;background:${bg};border-radius:8px;padding:8px 4px;text-align:center;min-width:38px;">
-        <div style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">${dow[dd.getDay()]}</div>
-        <div style="font-family:var(--mono);font-size:.68rem;margin-top:1px">${d.slice(8)}/${d.slice(5,7)}</div>
-        <div style="font-family:var(--mono);font-size:.82rem;font-weight:600;color:${color};margin-top:3px">${h}</div>
-      </div>`;
-    }).join('');
+    if(weekly){
+      const totalMes = Object.values(dailyMap).reduce((s,v)=>s+v,0);
+      const diasConHoras = Object.keys(dailyMap).length;
+      const mesNombre = from.toLocaleString('es-ES',{month:'long',year:'numeric'});
+      weekly.innerHTML = `
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;">
+          <div><span style="font-family:var(--mono);font-size:.7rem;color:var(--muted);text-transform:uppercase">Mes</span><div style="font-family:var(--mono);font-size:.9rem;font-weight:600;color:var(--text);text-transform:capitalize">${mesNombre}</div></div>
+          <div><span style="font-family:var(--mono);font-size:.7rem;color:var(--muted);text-transform:uppercase">Total horas</span><div style="font-family:var(--mono);font-size:.9rem;font-weight:600;color:var(--green)">${(totalMes/3600).toFixed(1)}h</div></div>
+          <div><span style="font-family:var(--mono);font-size:.7rem;color:var(--muted);text-transform:uppercase">Días imputados</span><div style="font-family:var(--mono);font-size:.9rem;font-weight:600;color:var(--accent)">${diasConHoras}</div></div>
+        </div>`;
+    }
 
     // Build issue-day map for detail table — only for dates in range
     const issueDayMap = {};
