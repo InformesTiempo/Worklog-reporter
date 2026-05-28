@@ -807,7 +807,8 @@ async function searchIssue(){
 
   try {
     // Use Vercel proxy to avoid CORS
-    const params = new URLSearchParams({ action: 'findIssue', q });
+    const token = getPersonalToken();
+    const params = new URLSearchParams({ action: 'findIssue', q, userEmail: logUserEmail, userToken: token || '' });
     const r = await fetch(`/api/worklogs?${params}`);
     if(!r.ok) throw new Error('Issue no encontrado');
     const d = await r.json();
