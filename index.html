@@ -249,10 +249,6 @@
 
 <!-- Manager Tab (hidden by default) -->
 <div id="pane-manager" style="display:none;">
-  <!-- Manager content - direct access for now -->
-  <div id="manager-content"></div>
-</div>
-
 <div id="manager-main"><div class="card">
   <div class="card-title">⚙ Configurar informe — Vista Manager</div>
   <div class="grid-3" style="margin-bottom:1.2rem">
@@ -338,6 +334,7 @@
   </div>
 </div>
 </div><!-- end manager-main -->
+</div><!-- end pane-manager -->
 
 <script>
 // Cookie helpers
@@ -382,12 +379,7 @@ function switchTab(tab){
   }
 }
 
-// Move manager content on load
-window.addEventListener('DOMContentLoaded', () => {
-  const mc = document.getElementById('manager-content');
-  const mm = document.getElementById('manager-main');
-  if(mm && mc) mc.appendChild(mm);
-});
+// manager content now directly inside pane-manager
 
 // ── Personal view ───────────────────────────────
 function ssP(msg,t){
