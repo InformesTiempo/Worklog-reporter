@@ -86,7 +86,7 @@ async function findIssue(query) {
     : `summary ~ "${q}" ORDER BY updated DESC`;
 
   const res = await jiraFetch(
-    `/rest/api/3/search?jql=${encodeURIComponent(jql)}&fields=summary,issuetype,status&maxResults=5`,
+    `/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=summary,issuetype,status&maxResults=5`,
     userEmail, token
   );
   if (!res.ok) {
@@ -143,7 +143,7 @@ async function getPersonalWorklogs(query) {
 
   const jql = `worklogAuthor = "${user}" AND worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}" ORDER BY updated DESC`;
   const searchRes = await jiraFetch(
-    `/rest/api/3/search?jql=${encodeURIComponent(jql)}&fields=summary,worklog,issuetype&maxResults=100`,
+    `/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=summary,worklog,issuetype&maxResults=100`,
     email, token
   );
   if (!searchRes.ok) {
@@ -215,7 +215,7 @@ async function searchByPerson(query) {
       jql += ` AND project in (${projs})`;
     }
     const searchRes = await jiraFetch(
-      `/rest/api/3/search?jql=${encodeURIComponent(jql)}&fields=summary,worklog&maxResults=100`,
+      `/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=summary,worklog&maxResults=100`,
       authEmail, authToken
     );
     if (!searchRes.ok) continue;
