@@ -154,7 +154,10 @@
       <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:center;">
         <input type="email" id="logEmail" placeholder="Introduce tu correo de Jira aquí" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;">
         <div style="position:relative;flex:1">
-          <input type="text" id="personalToken" placeholder="Tu API token de Jira" autocomplete="off" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;padding-right:40px;">
+          <input type="text" id="personalToken" placeholder="Tu API token de Jira" autocomplete="new-password" 
+            oninput="capturedToken=this.value" 
+            onpaste="setTimeout(()=>{capturedToken=this.value},50)"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;padding-right:40px;">
           <button onclick="toggleTokenVisibility()" id="tokenEye" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem;">👁</button>
         </div>
         <button onclick="saveToken()" class="btn" style="padding:8px 16px;font-size:.82rem;">Guardar</button>
@@ -333,6 +336,7 @@ function deleteCookie(name){
 }
 
 let logUserEmail = getCookie('jira_email') || '';
+let capturedToken = '';
 
 // ── Tab switching ──────────────────────────────
 function switchTab(tab){
@@ -508,7 +512,9 @@ function toggleTokenVisibility(){
 }
 
 function saveToken(){
-  const t = document.getElementById('personalToken').value.trim();
+  // Use captured value or field value - handles Chrome autocomplete issue
+  const fieldVal = document.getElementById('personalToken').value.trim();
+  const t = fieldVal || capturedToken.trim();
   const e = document.getElementById('logEmail').value.trim();
   if(!t||!e){alert('Introduce tu email y token');return;}
   localStorage.setItem('jira_personal_token', t);
