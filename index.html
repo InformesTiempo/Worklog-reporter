@@ -916,38 +916,27 @@ function addRecentLog(issue, time, date, comment){
   `).join('');
 }
 
-// ── Date init dentro de DOMContentLoaded ────────
+// ── Init ─────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', ()=>{
   const now=new Date(),y=now.getFullYear(),mo=String(now.getMonth()+1).padStart(2,'0');
   // Fechas managers
   const dfEl=document.getElementById('dateFrom');
   const dtEl=document.getElementById('dateTo');
   if(dfEl) dfEl.value=`${y}-${mo}-01`;
-  if(dtEl){ const last=new Date(y,now.getMonth()+1,0).getDate(); dtEl.value=`${y}-${mo}-${String(last).padStart(2,'0')}`; }
+  if(dtEl){const last=new Date(y,now.getMonth()+1,0).getDate();dtEl.value=`${y}-${mo}-${String(last).padStart(2,'0')}`;}
   // Fecha log
   const logDateEl=document.getElementById('logDate');
-  if(logDateEl){ const today=`${y}-${mo}-${String(now.getDate()).padStart(2,'0')}`; logDateEl.value=today; }
+  if(logDateEl){logDateEl.value=`${y}-${mo}-${String(now.getDate()).padStart(2,'0')}`;}
   // Fechas Mi Tiempo
   setRangeP('thisMonth');
   // Email Mi Tiempo
   const savedEmail=sessionStorage.getItem('jira_email')||localStorage.getItem('jira_email_bk');
-  if(savedEmail){ const el=document.getElementById('jiraUser'); if(el) el.value=savedEmail; }
-  // Sesión
-  checkTokenStatus();
-  // Tab por defecto
-  switchTab('imputar');
-  // Init dropdowns managers
+  if(savedEmail){const el=document.getElementById('jiraUser');if(el)el.value=savedEmail;}
+  // Init dropdowns
   initProjs();
   initGroups();
-  // Cerrar dropdowns al hacer click fuera
-  document.addEventListener('click',e=>{
-    const ps=document.getElementById('projSelector');
-    const pd=document.getElementById('projDropdown');
-    const gs=document.getElementById('groupSelector');
-    const gd=document.getElementById('groupDropdown');
-    if(pd&&ps&&!ps.contains(e.target)&&!pd.contains(e.target)) pd.style.display='none';
-    if(gd&&gs&&!gs.contains(e.target)&&!gd.contains(e.target)) gd.style.display='none';
-  });
+  // Sesión
+  checkTokenStatus();
 });
 
 let gData=[],gDaily={};
@@ -1025,7 +1014,15 @@ function updateGroupSelection(){
     `${selectedGroups.size} equipos seleccionados`;
 }
 
-// Close dropdowns when clicking outside — se registra en DOMContentLoaded
+// Close dropdowns when clicking outside
+document.addEventListener('click',e=>{
+  const ps=document.getElementById('projSelector');
+  const pd=document.getElementById('projDropdown');
+  const gs=document.getElementById('groupSelector');
+  const gd=document.getElementById('groupDropdown');
+  if(pd&&ps&&!ps.contains(e.target)&&!pd.contains(e.target)) pd.style.display='none';
+  if(gd&&gs&&!gs.contains(e.target)&&!gd.contains(e.target)) gd.style.display='none';
+});
 
 function setRange(type){
   const now=new Date();
