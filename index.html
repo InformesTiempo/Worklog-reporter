@@ -381,11 +381,6 @@ function switchTab(tab){
 
 // manager content now directly inside pane-manager
 
-// Inicializar mostrando la pestaña imputar por defecto
-window.addEventListener('DOMContentLoaded', () => {
-  switchTab('imputar');
-});
-
 // ── Personal view ───────────────────────────────
 function ssP(msg,t){
   const e=document.getElementById('pStatus');
@@ -920,29 +915,38 @@ function addRecentLog(issue, time, date, comment){
   `).join('');
 }
 
-// ── Date init ───────────────────────────────────
-const now=new Date(),y=now.getFullYear(),mo=String(now.getMonth()+1).padStart(2,'0');
-document.getElementById('dateFrom').value=`${y}-${mo}-01`;
-const last=new Date(y,now.getMonth()+1,0).getDate();
-document.getElementById('dateTo').value=`${y}-${mo}-${String(last).padStart(2,'0')}`;
-// Init personal dates too
-setRangeP('thisMonth');
-
-// Pre-fill email in Mi Tiempo from saved credentials
+// ── Date init (dentro de DOMContentLoaded para evitar errores) ───────────
 window.addEventListener('DOMContentLoaded', ()=>{
+  const now=new Date(),y=now.getFullYear(),mo=String(now.getMonth()+1).padStart(2,'0');
+  
+  // Fechas managers
+  const dfEl = document.getElementById('dateFrom');
+  const dtEl = document.getElementById('dateTo');
+  if(dfEl) dfEl.value=`${y}-${mo}-01`;
+  if(dtEl){ const last=new Date(y,now.getMonth()+1,0).getDate(); dtEl.value=`${y}-${mo}-${String(last).padStart(2,'0')}`; }
+
+  // Fecha log form
+  const logDateEl = document.getElementById('logDate');
+  if(logDateEl){
+    const today = `${y}-${mo}-${String(now.getDate()).padStart(2,'0')}`;
+    logDateEl.value = today;
+  }
+
+  // Fechas Mi Tiempo
+  setRangeP('thisMonth');
+
+  // Pre-fill email en Mi Tiempo
   const savedEmail = sessionStorage.getItem('jira_email') || localStorage.getItem('jira_email_bk');
   if(savedEmail){
     const jiraUserEl = document.getElementById('jiraUser');
     if(jiraUserEl) jiraUserEl.value = savedEmail;
   }
-  // Set today's date in log form
-  const logDateEl = document.getElementById('logDate');
-  if(logDateEl){
-    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-    logDateEl.value = today;
-  }
-  // Restore token status on page load
+
+  // Restaurar sesión
   checkTokenStatus();
+
+  // Mostrar pestaña imputar por defecto
+  switchTab('imputar');
 });
 
 let gData=[],gDaily={};
