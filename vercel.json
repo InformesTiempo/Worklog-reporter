@@ -1,7 +1,1 @@
-{
-  "functions": {
-    "api/worklogs.js": {
-      "maxDuration": 10
-    }
-  }
-}
+{}
