@@ -596,14 +596,31 @@ function updateLoginUI(email){
   }
 }
 
-function checkTokenStatus(){
-  // Try sessionStorage first, then localStorage backup
+async function checkTokenStatus(){
   const email = sessionStorage.getItem('jira_email') || localStorage.getItem('jira_email_bk');
   const token = sessionStorage.getItem('jira_token') || localStorage.getItem('jira_token_bk');
   if(email && token){
     logUserEmail = email;
     updateLoginUI(email);
     loadImputarContext();
+  } else if(email){
+    // Hay email pero no token — recuperar de Upstash automáticamente
+    try {
+      const r = await fetch('/api/worklogs?action=login', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({email})
+      });
+      if(r.ok){
+        const d = await r.json();
+        if(d.token){
+          logUserEmail = email;
+          sessionStorage.setItem('jira_email', email);
+          sessionStorage.setItem('jira_token', d.token);
+          updateLoginUI(email);
+          loadImputarContext();
+        }
+      }
+    } catch(e){ console.log('Auto-login failed:', e); }
   }
 }
 
@@ -616,7 +633,24 @@ function clearToken(){ doLogout(); }
 function toggleTokenVisibility(){ /* legacy */ }
 
 async function loadImputarContext(){
-  const token = getPersonalToken();
+  let token = getPersonalToken();
+  // Si no hay token en sessionStorage pero sí email, recuperarlo de Upstash
+  if(!token && logUserEmail){
+    try {
+      const r = await fetch('/api/worklogs?action=login', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({email: logUserEmail})
+      });
+      if(r.ok){
+        const d = await r.json();
+        token = d.token;
+        if(token){
+          sessionStorage.setItem('jira_token', token);
+          sessionStorage.setItem('jira_email', logUserEmail);
+        }
+      }
+    } catch(e){ console.log('Token recovery failed:', e); }
+  }
   if(!token || !logUserEmail) return;
 
   // Mes actual completo
