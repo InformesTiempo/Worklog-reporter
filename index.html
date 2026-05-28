@@ -88,7 +88,7 @@
 <div id="pane-personal" style="display:none;">
   <div class="card">
     <div class="card-title">👤 Mi tiempo en Jira</div>
-    <div class="grid-3" style="margin-bottom:1rem;align-items:end;">
+    <div class="grid-3" style="margin-bottom:1rem;align-items:start;">
       <div>
         <span class="field-label">Tu email de Jira</span>
         <input type="email" id="jiraUser" placeholder="nombre.apellido@educamos.com" style="width:100%;">
@@ -108,8 +108,9 @@
           <button onclick="setRangeP('last30')" class="range-btn">Últimos 30 días</button>
         </div>
       </div>
-      <div style="display:flex;align-items:flex-end;">
-        <button class="btn" onclick="runPersonal()" style="width:100%">▶ Ver mis horas</button>
+      <div>
+        <span class="field-label" style="visibility:hidden">.</span>
+        <button class="btn" onclick="runPersonal()" style="width:100%;justify-content:center;">▶ Ver mis horas</button>
       </div>
     </div>
     <div id="pStatus" style="font-family:var(--mono);font-size:.8rem;padding:8px 0;display:none;"></div>
@@ -194,9 +195,9 @@
           <input type="date" id="logDate" style="width:100%;" onclick="try{this.showPicker()}catch(e){}">
         </div>
         <div>
-          <span class="field-label" style="font-size:.85rem;color:var(--text);font-weight:600;">⏱ Tiempo a registrar</span>
+          <span class="field-label">⏱ Tiempo a registrar</span>
           <input type="text" id="logTime" placeholder="ej: 8h, 8h 30m, 1,5h, 45m"
-            style="width:100%;border:2px solid var(--accent);border-radius:10px;padding:14px 16px;font-size:1.2rem;font-weight:600;letter-spacing:1px;">
+            style="width:100%;border:1px solid var(--border);border-radius:8px;padding:11px 13px;font-family:var(--mono);font-size:.92rem;">
         </div>
       </div>
       <div style="margin-bottom:1rem;">
