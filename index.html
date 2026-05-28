@@ -370,7 +370,8 @@ function switchTab(tab){
   if(tab==='imputar') checkTokenStatus();
   if(tab==='personal'){
     const sessionEmail = sessionStorage.getItem('jira_email') || logUserEmail;
-    if(sessionEmail){
+    const sessionToken = getPersonalToken();
+    if(sessionEmail && sessionToken){
       document.getElementById('jiraUser').value = sessionEmail;
       runPersonal();
     }
@@ -417,11 +418,9 @@ function setRangeP(type){
 }
 
 async function runPersonal(){
-  // Usar email y token de sesión automáticamente
   const sessionEmail = sessionStorage.getItem('jira_email') || logUserEmail;
   const sessionToken = getPersonalToken();
   if(sessionEmail) document.getElementById('jiraUser').value = sessionEmail;
-
   const username=document.getElementById('jiraUser').value.trim().toLowerCase();
   const df=document.getElementById('pDateFrom').value;
   const dt=document.getElementById('pDateTo').value;
@@ -1099,11 +1098,15 @@ async function run(){
   document.getElementById('results').style.display='none';
 
   try{
+    const mgToken = getPersonalToken();
+    const mgUser = logUserEmail || sessionStorage.getItem('jira_email') || '';
     const params=new URLSearchParams({
       action:'searchByPerson',
       groups:[...selectedGroups].join(','),
       dateFrom:df,
-      dateTo:dt
+      dateTo:dt,
+      user:mgUser,
+      userToken:mgToken||''
     });
     if(projs.length) params.append('project', projs.join(','));
 
