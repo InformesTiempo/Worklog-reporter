@@ -936,6 +936,18 @@ window.addEventListener('DOMContentLoaded', ()=>{
   checkTokenStatus();
   // Tab por defecto
   switchTab('imputar');
+  // Init dropdowns managers
+  initProjs();
+  initGroups();
+  // Cerrar dropdowns al hacer click fuera
+  document.addEventListener('click',e=>{
+    const ps=document.getElementById('projSelector');
+    const pd=document.getElementById('projDropdown');
+    const gs=document.getElementById('groupSelector');
+    const gd=document.getElementById('groupDropdown');
+    if(pd&&ps&&!ps.contains(e.target)&&!pd.contains(e.target)) pd.style.display='none';
+    if(gd&&gs&&!gs.contains(e.target)&&!gd.contains(e.target)) gd.style.display='none';
+  });
 });
 
 let gData=[],gDaily={};
@@ -1013,19 +1025,7 @@ function updateGroupSelection(){
     `${selectedGroups.size} equipos seleccionados`;
 }
 
-// Close dropdowns when clicking outside
-document.addEventListener('click',e=>{
-  const ps=document.getElementById('projSelector');
-  const pd=document.getElementById('projDropdown');
-  const gs=document.getElementById('groupSelector');
-  const gd=document.getElementById('groupDropdown');
-  if(pd&&ps&&!ps.contains(e.target)&&!pd.contains(e.target)) pd.style.display='none';
-  if(gd&&gs&&!gs.contains(e.target)&&!gd.contains(e.target)) gd.style.display='none';
-});
-
-initProjs();
-initGroups();
-// Nothing selected by default — user picks manually
+// Close dropdowns when clicking outside — se registra en DOMContentLoaded
 
 function setRange(type){
   const now=new Date();
