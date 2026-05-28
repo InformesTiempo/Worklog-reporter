@@ -134,16 +134,20 @@ async function logWork(body) {
 
 // ── personal: worklogs del usuario en un rango de fechas ─────────────────
 async function getPersonalWorklogs(query) {
-  const { user, dateFrom, dateTo } = query;
+  const { user, dateFrom, dateTo, userToken } = query;
   if (!user) return { error: 'Falta user' };
 
-  // Obtener token de Upstash
-  const record = await kvGet(`wl:${user.toLowerCase()}`);
-  if (!record) return { error: 'No autenticado' };
-  const { email, token } = record;
+  // Usar token del query si viene, si no buscarlo en Upstash
+  let email = user;
+  let token = userToken;
+  if (!token) {
+    const record = await kvGet(`wl:${user.toLowerCase()}`);
+    if (!record) return { error: 'No autenticado' };
+    email = record.email;
+    token = record.token;
+  }
 
   // Jira Cloud requiere accountId en el JQL, no email
-  // Primero obtenemos el accountId del usuario
   const myselfRes = await jiraFetch('/rest/api/3/myself', email, token);
   if (!myselfRes.ok) return { error: 'No se pudo obtener el perfil de Jira' };
   const myself = await myselfRes.json();
