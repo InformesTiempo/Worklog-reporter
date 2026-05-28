@@ -113,7 +113,8 @@ async function logWork(body) {
     return { error: 'Faltan campos obligatorios' };
   }
 
-  const started = `${date}T09:00:00.000+0000`;
+  const now = new Date();
+  const started = `${date}T${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:00.000+0000`;
   const payload = { timeSpentSeconds, started };
   if (comment) payload.comment = { type: 'doc', version: 1, content: [{ type: 'paragraph', content: [{ type: 'text', text: comment }] }] };
 
