@@ -664,7 +664,7 @@ async function loadImputarContext(){
     // Mostrar contexto SIEMPRE aunque fallen los worklogs
     document.getElementById('imputar-context').style.display='block';
 
-    const params = new URLSearchParams({action:'personal', user:logUserEmail, dateFrom:df, dateTo:dt});
+    const params = new URLSearchParams({action:'personal', user:logUserEmail, dateFrom:df, dateTo:dt, userToken: token || ''});
     const r = await fetch(`/api/worklogs?${params}`);
     if(!r.ok) return;
     const data = await r.json();
