@@ -262,7 +262,7 @@
         <input type="number" id="dailyHours" value="8.5" step="0.5" min="1" max="24" style="width:100%;">
       </div>
     </div>
-    <div class="grid-3" style="margin-bottom:1rem;align-items:end;">
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;margin-bottom:1rem;align-items:start;">
       <div>
         <span class="field-label">Rango de fechas</span>
         <div style="display:flex;gap:8px;align-items:center;">
@@ -278,9 +278,9 @@
           <button onclick="setRangeMg('last30')" class="range-btn" id="rb-last30">Últimos 30 días</button>
         </div>
       </div>
-      <div></div>
-      <div style="display:flex;align-items:flex-end;">
-        <button class="btn" id="mgRunBtn" onclick="runManager()" style="width:100%;">▶ Generar informe</button>
+      <div>
+        <span class="field-label" style="visibility:hidden">.</span>
+        <button class="btn" id="mgRunBtn" onclick="runManager()" style="width:100%;justify-content:center;">▶ Generar informe</button>
       </div>
     </div>
     <div id="mgStatus" style="font-family:var(--mono);font-size:.8rem;padding:8px 0;display:none;"></div>
