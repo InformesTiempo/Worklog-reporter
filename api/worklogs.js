@@ -59,23 +59,27 @@ export default async function handler(req, res) {
         const issues = data.issues || [];
 
         for (const issue of issues) {
-          let wls = issue.fields.worklog?.worklogs || [];
-          if ((issue.fields.worklog?.total || 0) > wls.length) {
-            const wr = await fetch(`${JIRA_URL}/rest/api/3/issue/${issue.key}/worklog`, { headers });
+          // Always fetch from dedicated endpoint with date filter to avoid duplicates
+          let wlStart = 0;
+          while(true) {
+            const wr = await fetch(`${JIRA_URL}/rest/api/3/issue/${issue.key}/worklog?startAt=${wlStart}&maxResults=100`, { headers });
+            if (!wr.ok) break;
             const wd = await wr.json();
-            wls = wd.worklogs || [];
-          }
-          for (const wl of wls) {
-            const wlDate = wl.started.split('T')[0];
-            if (wlDate < dateFrom || wlDate > dateTo) continue;
-            if (wl.author?.accountId !== accountId) continue;
-            allWorklogs.push({
-              issueKey: issue.key,
-              issueSummary: issue.fields.summary,
-              started: wl.started,
-              timeSpentSeconds: wl.timeSpentSeconds,
-              author: wl.author
-            });
+            const wls = wd.worklogs || [];
+            for (const wl of wls) {
+              const wlDate = wl.started.split('T')[0];
+              if (wlDate < dateFrom || wlDate > dateTo) continue;
+              if (wl.author?.accountId !== accountId) continue;
+              allWorklogs.push({
+                issueKey: issue.key,
+                issueSummary: issue.fields.summary,
+                started: wl.started,
+                timeSpentSeconds: wl.timeSpentSeconds,
+                author: wl.author
+              });
+            }
+            if (wls.length < 100 || wlStart + 100 >= (wd.total || 0)) break;
+            wlStart += 100;
           }
         }
         if (issues.length < 100 || data.isLast || !data.nextPageToken) break;
