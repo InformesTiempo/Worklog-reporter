@@ -6,41 +6,49 @@
 <title>Jira Worklog Reporter · Educamos</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
-  :root{--bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3350;--accent:#4f6ef7;--accent2:#7c3aed;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--text:#e2e8f0;--muted:#64748b;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
+    /* Variables base (acentos comunes a ambos modos) */
+  :root{--accent:#ec1e79;--accent2:#ffd93d;--grad2:#7c3aed;--green:#5ed4cf;--red:#ef4444;--yellow:#ffd93d;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
+  /* Modo oscuro — Opción A: vibrante violáceo */
+  :root[data-theme="dark"]{--bg:#15101a;--surface:#1f1828;--surface2:#2b2236;--border:#3d2f4a;--text:#f5f0fa;--muted:#9c8aab}
+  /* Modo claro — Opción C: light minimalista */
+  :root[data-theme="light"]{--bg:#fafafa;--surface:#ffffff;--surface2:#f4f1f7;--border:#e6e0eb;--text:#2b1f33;--muted:#7c6e88}
+  /* Botón toggle tema */
+  .theme-toggle{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 14px;font-family:var(--mono);font-size:.78rem;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+  .theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;padding:2rem}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;padding:2rem;font-size:15px;line-height:1.5}
   header{display:flex;align-items:center;gap:1rem;margin-bottom:2.5rem}
-  .logo{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
-  h1{font-family:var(--mono);font-size:1.4rem;letter-spacing:-.5px}
+  .logo{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--grad2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+  h1{font-family:var(--mono);font-size:1.5rem;letter-spacing:-.5px;font-weight:600}
   h1 span{color:var(--accent)}
   .badge{margin-left:auto;background:var(--surface2);border:1px solid var(--border);padding:4px 12px;border-radius:20px;font-family:var(--mono);font-size:.7rem;color:var(--muted)}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem}
-  .card-title{font-family:var(--mono);font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:1rem}
+  .card-title{font-family:var(--mono);font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:1rem;font-weight:600}
   .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
-  .field-label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:6px;font-family:var(--mono)}
-  input[type=date],input[type=number],input[type=text],input[type=email]{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;transition:border-color .2s}
+  .field-label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:6px;font-family:var(--mono);font-weight:600}
+  input[type=date],input[type=number],input[type=text],input[type=email]{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:var(--text);font-family:var(--mono);font-size:.92rem;outline:none;transition:border-color .2s}
   input:focus{border-color:var(--accent)}
-  .btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:8px;padding:12px 28px;font-family:var(--mono);font-size:.9rem;cursor:pointer;transition:opacity .2s,transform .1s;display:inline-flex;align-items:center;gap:8px}
+  .btn{background:linear-gradient(135deg,var(--accent),var(--grad2));color:#fff;border:none;border-radius:8px;padding:12px 28px;font-family:var(--mono);font-size:.95rem;cursor:pointer;transition:opacity .2s,transform .1s;display:inline-flex;align-items:center;gap:8px;font-weight:600}
   .btn:hover{opacity:.9;transform:translateY(-1px)}
   .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
   .btn-sec{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
   .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
   .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem;text-align:center}
-  .stat-value{font-family:var(--mono);font-size:1.6rem;font-weight:600;margin-bottom:4px}
-  .stat-label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-  .range-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:4px 12px;font-family:var(--mono);font-size:.72rem;cursor:pointer;transition:all .2s}
+  .stat-value{font-family:var(--mono);font-size:1.8rem;font-weight:700;margin-bottom:4px}
+  .stat-label{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  .range-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:6px 14px;font-family:var(--mono);font-size:.78rem;cursor:pointer;transition:all .2s;font-weight:500}
   .range-btn:hover,.range-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
-  .dtable{width:100%;border-collapse:collapse;font-size:.82rem}
-  .dtable th{padding:6px 8px;text-align:center;font-family:var(--mono);font-size:.68rem;color:var(--muted);border-bottom:1px solid var(--border);border-right:1px solid var(--border);white-space:nowrap;min-width:42px}
+  .dtable{width:100%;border-collapse:collapse;font-size:.88rem}
+  .dtable th{padding:8px 10px;text-align:center;font-family:var(--mono);font-size:.74rem;color:var(--muted);border-bottom:1px solid var(--border);border-right:1px solid var(--border);white-space:nowrap;min-width:46px;font-weight:600}
   .dtable th:first-child{text-align:left;min-width:160px;position:sticky;left:0;background:var(--surface2);z-index:2}
   .dtable th.total-col{background:var(--surface2);font-weight:600;color:var(--text)}
   .dtable th.weekend{background:rgba(100,116,139,.08)}
-  .dtable td{padding:6px 8px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:center;font-family:var(--mono);font-size:.8rem}
+  .dtable td{padding:8px 10px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:center;font-family:var(--mono);font-size:.85rem}
   .dtable td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1;font-family:var(--sans)}
   .dtable tr:hover td:first-child{background:var(--surface2)}
   .dtable td.weekend{background:rgba(100,116,139,.06)}
-  .dtable td.ok{background:rgba(34,197,94,.12);color:#4ade80}
-  .dtable td.partial{background:rgba(245,158,11,.12);color:#fbbf24}
+  .dtable td.ok{background:rgba(94,212,207,.15);color:#5ed4cf}
+  .dtable td.partial{background:rgba(255,217,61,.15);color:#ffd93d}
   .dtable td.low{background:rgba(239,68,68,.12);color:#f87171}
   .dtable td.empty-work{background:rgba(239,68,68,.04);color:var(--muted)}
   .dtable td.total-col{background:var(--surface2);font-weight:600;color:var(--text)}
@@ -48,6 +56,13 @@
   .pcell{display:flex;align-items:center;gap:8px}
   @media(max-width:768px){.grid-3{grid-template-columns:1fr}.stats-row{grid-template-columns:1fr 1fr}}
 </style>
+<script>
+  // Aplicar tema inmediatamente para evitar parpadeo al cargar
+  (function(){
+    const t = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
 </head>
 <body>
 <header>
@@ -56,12 +71,15 @@
     <h1>Jira <span>Worklog</span> Reporter</h1>
     <div style="font-size:.75rem;color:var(--muted);margin-top:2px">Seguimiento de tiempo · Educamos</div>
   </div>
-  <div class="badge">v4.0</div>
+  <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Cambiar tema">
+    <span id="themeIcon">🌙</span> <span id="themeText">Oscuro</span>
+  </button>
+  <div class="badge" style="margin-left:0;">v4.0</div>
 </header>
 
 <!-- Tabs -->
 <div style="display:flex;gap:4px;margin-bottom:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;">
-  <button id="tab-imputar" onclick="switchTab('imputar')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;transition:all .2s;">✏️ Imputar</button>
+  <button id="tab-imputar" onclick="switchTab('imputar')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:linear-gradient(135deg,var(--accent),var(--grad2));color:#fff;transition:all .2s;">✏️ Imputar</button>
   <button id="tab-personal" onclick="switchTab('personal')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:transparent;color:var(--muted);transition:all .2s;">👤 Mi Tiempo</button>
   <button id="tab-manager" onclick="switchTab('manager')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:transparent;color:var(--muted);transition:all .2s;">📊 Managers</button>
 </div>
@@ -121,6 +139,11 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <span style="font-family:var(--mono);font-size:.8rem;color:var(--muted);">🔑 Tu acceso a Jira</span>
         <span id="token-status" style="font-size:.75rem;font-family:var(--mono);color:var(--muted);">No configurado</span>
+      </div>
+      <div id="welcome-banner" style="margin-bottom:12px;padding:12px 14px;background:rgba(236,30,121,.08);border:1px solid rgba(236,30,121,.3);border-radius:8px;font-size:.78rem;color:var(--text);line-height:1.5;">
+        <strong style="color:var(--accent);">👋 Bienvenido/a</strong><br>
+        Si es tu <strong>primera vez</strong>, haz clic en <a href="#" onclick="showRegister();return false;" style="color:var(--accent);font-weight:600;">"Regístrate aquí"</a> para configurar tu acceso con tu email y tu API token de Jira.<br>
+        Si ya te registraste antes, solo introduce tu <strong>email</strong> y pulsa Entrar.
       </div>
       <div id="login-form">
         <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
@@ -297,7 +320,7 @@ function switchTab(tab){
     document.getElementById('pane-'+t).style.display = tab===t?'block':'none';
     const btn=document.getElementById('tab-'+t);
     if(btn){
-      btn.style.background = tab===t?'linear-gradient(135deg,var(--accent),var(--accent2))':'transparent';
+      btn.style.background = tab===t?'linear-gradient(135deg,var(--accent),var(--grad2))':'transparent';
       btn.style.color = tab===t?'#fff':'var(--muted)';
     }
   });
@@ -321,6 +344,7 @@ function updateLoginUI(email){
   document.getElementById('token-status').style.color = 'var(--green)';
   document.getElementById('login-form').style.display = 'none';
   document.getElementById('register-form').style.display = 'none';
+  const wb=document.getElementById('welcome-banner');if(wb) wb.style.display='none';
   document.getElementById('logout-bar').style.display = 'block';
   document.getElementById('log-form').style.display = 'block';
   document.getElementById('imputar-context').style.display = 'block';
@@ -362,6 +386,7 @@ function doLogout(){
   document.getElementById('token-status').textContent='No configurado';
   document.getElementById('token-status').style.color='var(--muted)';
   document.getElementById('login-form').style.display='block';
+  const wb=document.getElementById('welcome-banner');if(wb) wb.style.display='block';
   document.getElementById('logout-bar').style.display='none';
   document.getElementById('log-form').style.display='none';
   document.getElementById('imputar-context').style.display='none';
@@ -387,7 +412,14 @@ async function doLogin(){
   try{
     const r=await fetch('/api/worklogs?action=login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
     const d=await r.json();
-    if(!r.ok) throw new Error(d.error||'Error al iniciar sesión');
+    if(!r.ok){
+      if(r.status===401 || (d.error||'').toLowerCase().includes('no registrado')){
+        alert('No estás registrado todavía.\n\nHaz clic en "Regístrate aquí" para configurar tu acceso por primera vez con tu email y tu API token de Jira.');
+        showRegister();
+        return;
+      }
+      throw new Error(d.error||'Error al iniciar sesión');
+    }
     loginWithData(email, d.token);
   }catch(e){alert('Error: '+e.message);}
 }
@@ -457,7 +489,7 @@ async function loadImputarContext(){
           const s=d.days[date]||0;
           if(we) return`<td class="weekend">${s>0?(s/3600).toFixed(1):''}</td>`;
           if(!s) return`<td style="color:var(--muted)">—</td>`;
-          return`<td style="background:rgba(79,110,247,.12);color:#818cf8;">${(s/3600).toFixed(1)}</td>`;
+          return`<td style="background:rgba(236,30,121,.12);color:#f06292;">${(s/3600).toFixed(1)}</td>`;
         }).join('');
         return`<tr>
           <td onclick="selectRecentIssue('${k}','${(d.summary||k).replace(/'/g,"\\'")}');" style="color:var(--accent);cursor:pointer;font-family:var(--mono);font-size:.78rem;">${k}</td>
@@ -500,9 +532,19 @@ async function searchIssue(){
   try{
     const params=new URLSearchParams({action:'findIssue',q,userEmail:logUserEmail,userToken:token||''});
     const r=await fetch(`/api/worklogs?${params}`);
-    if(!r.ok) throw new Error('Issue no encontrado');
-    const d=await r.json();
-    if(d.error) throw new Error(d.error);
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok || d.error){
+      // Detectar token caducado/inválido
+      const errMsg=(d.error||'').toLowerCase();
+      if(r.status===401 || errMsg.includes('unauthorized') || errMsg.includes('auth') || errMsg.includes('token')){
+        if(confirm('Tu API token de Jira ha caducado o no es válido.\n\n¿Quieres registrarte de nuevo con un token nuevo?\n\n(Te llevará a la pantalla de registro)')){
+          doLogout();
+          showRegister();
+        }
+        return;
+      }
+      throw new Error(d.error||'Issue no encontrado');
+    }
     selectedIssueKey=d.key;
     document.getElementById('issueResult').innerHTML=`<span style="color:var(--accent)">${d.key}</span> — ${d.summary}`;
   }catch(e){
@@ -541,7 +583,18 @@ async function logWork(){
   ssLog('⏳ Registrando...','loading');
   try{
     const r=await fetch('/api/worklogs?action=logWork',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({issueKey:selectedIssueKey,timeSpentSeconds:secs,date,comment,userEmail:logUserEmail,userToken:token})});
-    if(!r.ok){const e=await r.json();throw new Error(e.error||`Error ${r.status}`);}
+    if(!r.ok){
+      const e=await r.json().catch(()=>({}));
+      const errMsg=(e.error||'').toLowerCase();
+      if(r.status===401 || errMsg.includes('unauthorized') || errMsg.includes('auth')){
+        if(confirm('Tu API token de Jira ha caducado o no es válido.\n\n¿Quieres registrarte de nuevo con un token nuevo?')){
+          doLogout();
+          showRegister();
+        }
+        return;
+      }
+      throw new Error(e.error||`Error ${r.status}`);
+    }
     ssLog(`✓ ${timeStr} registrado en ${selectedIssueKey}`,'success');
     recentLogs.unshift({issue:selectedIssueKey,time:timeStr,date,comment});
     const el=document.getElementById('recentLogs'),list=document.getElementById('recentLogsList');
@@ -624,7 +677,7 @@ async function runPersonal(){
         const s=d.days[date]||0;
         if(we) return`<td class="weekend">${s>0?(s/3600).toFixed(1):''}</td>`;
         if(!s) return`<td style="color:var(--muted)">—</td>`;
-        return`<td style="background:rgba(79,110,247,.12);color:#818cf8;">${(s/3600).toFixed(1)}</td>`;
+        return`<td style="background:rgba(236,30,121,.12);color:#f06292;">${(s/3600).toFixed(1)}</td>`;
       }).join('');
       return`<tr>
         <td style="color:var(--accent);font-family:var(--mono);font-size:.78rem;font-weight:600;">${k}</td>
@@ -787,8 +840,28 @@ function exportMgCSV(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='managers.csv';a.click();
 }
 
+// ── Theme toggle ─────────────────────────────
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  localStorage.setItem('theme', next);
+}
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  const text = document.getElementById('themeText');
+  if(icon && text){
+    if(theme === 'dark'){ icon.textContent = '☀️'; text.textContent = 'Claro'; }
+    else { icon.textContent = '🌙'; text.textContent = 'Oscuro'; }
+  }
+}
+
 // ── Init ──────────────────────────────────────
 window.addEventListener('DOMContentLoaded', ()=>{
+  // Tema guardado o oscuro por defecto
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  applyTheme(savedTheme);
   const now=new Date(),y=now.getFullYear(),mo=String(now.getMonth()+1).padStart(2,'0');
   // Fecha log
   const logDateEl=document.getElementById('logDate');
