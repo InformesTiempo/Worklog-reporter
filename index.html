@@ -369,6 +369,13 @@ function switchTab(tab){
   });
   if(tab==='imputar') checkTokenStatus();
   if(tab==='personal'){
+    const sessionEmail = sessionStorage.getItem('jira_email') || logUserEmail;
+    if(sessionEmail){
+      document.getElementById('jiraUser').value = sessionEmail;
+      runPersonal();
+    }
+  }
+  if(tab==='personal'){
     const savedEmail = sessionStorage.getItem('jira_email') || localStorage.getItem('jira_email_bk');
     if(savedEmail) document.getElementById('jiraUser').value = savedEmail;
   }
@@ -410,11 +417,11 @@ function setRangeP(type){
 }
 
 async function runPersonal(){
-  // Auto-fill from saved token if available
-  const savedEmail = getCookie('jira_email');
-  if(savedEmail && !document.getElementById('jiraUser').value.trim()){
-    document.getElementById('jiraUser').value = savedEmail;
-  }
+  // Usar email y token de sesión automáticamente
+  const sessionEmail = sessionStorage.getItem('jira_email') || logUserEmail;
+  const sessionToken = getPersonalToken();
+  if(sessionEmail) document.getElementById('jiraUser').value = sessionEmail;
+
   const username=document.getElementById('jiraUser').value.trim().toLowerCase();
   const df=document.getElementById('pDateFrom').value;
   const dt=document.getElementById('pDateTo').value;
@@ -425,11 +432,8 @@ async function runPersonal(){
   document.getElementById('pResults').style.display='none';
 
   try{
-    // Use email directly
     const user=username;
-
-    // Fetch worklogs for this user
-    const params=new URLSearchParams({action:'personal',user,dateFrom:df,dateTo:dt});
+    const params=new URLSearchParams({action:'personal',user,dateFrom:df,dateTo:dt,userToken:sessionToken||''});
     const r=await fetch(`/api/worklogs?${params}`);
     if(!r.ok) throw new Error(`Error ${r.status}`);
     const data=await r.json();
