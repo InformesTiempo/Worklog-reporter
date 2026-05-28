@@ -154,9 +154,8 @@
 
       <!-- Login form (default) -->
       <div id="login-form">
-        <div style="display:grid;grid-template-columns:1fr 120px auto;gap:8px;align-items:center;">
-          <input type="email" id="logEmail" placeholder="Tu email de Jira" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;">
-          <input type="password" id="loginPin" placeholder="PIN (4 dígitos)" maxlength="4" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;text-align:center;letter-spacing:4px;" onkeydown="if(event.key==='Enter')doLogin()">
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
+          <input type="email" id="logEmail" placeholder="Tu email de Jira" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;" onkeydown="if(event.key==='Enter')doLogin()">
           <button onclick="doLogin()" class="btn" style="padding:8px 16px;font-size:.82rem;">Entrar</button>
         </div>
         <div style="margin-top:8px;font-size:.72rem;color:var(--muted);">
@@ -167,17 +166,16 @@
       <!-- Register form (hidden) -->
       <div id="register-form" style="display:none;">
         <div style="font-size:.8rem;color:var(--text);margin-bottom:8px;font-family:var(--mono);">Registro — solo la primera vez</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 100px;gap:8px;margin-bottom:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
           <input type="email" id="regEmail" placeholder="Tu email de Jira" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;">
           <input type="text" id="regToken" placeholder="Tu API token de Jira" autocomplete="off" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;">
-          <input type="password" id="regPin" placeholder="PIN 4 dig." maxlength="4" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;text-align:center;letter-spacing:4px;">
         </div>
         <div style="display:flex;gap:8px;">
           <button onclick="doRegister()" class="btn" style="padding:8px 16px;font-size:.82rem;">Guardar y entrar</button>
           <button onclick="showLogin()" class="btn btn-sec" style="padding:8px 16px;font-size:.82rem;">Cancelar</button>
         </div>
         <div style="font-size:.72rem;color:var(--muted);margin-top:6px;">
-          Token en <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" style="color:var(--accent);">id.atlassian.com</a> · El PIN lo eliges tú, solo tú lo sabrás
+          Token en <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" style="color:var(--accent);">id.atlassian.com</a>
         </div>
       </div>
 
@@ -530,37 +528,29 @@ function showLogin(){ document.getElementById('login-form').style.display='block
 async function doRegister(){
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
   const token = document.getElementById('regToken').value.trim();
-  const pin = document.getElementById('regPin').value.trim();
-  if(!email||!token||!pin){ alert('Completa todos los campos'); return; }
-  if(!/^\d{4}$/.test(pin)){ alert('El PIN debe ser exactamente 4 dígitos'); return; }
+  if(!email||!token){ alert('Completa todos los campos'); return; }
   try{
     const r = await fetch('/api/worklogs?action=saveCredentials', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({email, token, pin})
+      body: JSON.stringify({email, token})
     });
     const d = await r.json();
     if(!r.ok) throw new Error(d.error||'Error al guardar');
-    // Auto login after register
     await loginWithData(email, token);
-    alert('✓ Registro completado. Ya puedes usar la app.');
   }catch(e){ alert('Error: '+e.message); }
 }
 
 async function doLogin(){
   const email = document.getElementById('logEmail').value.trim().toLowerCase();
-  const pin = document.getElementById('loginPin').value.trim();
-  if(!email||!pin){ alert('Introduce tu email y PIN'); return; }
+  if(!email){ alert('Introduce tu email'); return; }
   try{
     const r = await fetch('/api/worklogs?action=login', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({email, pin})
+      body: JSON.stringify({email})
     });
     const d = await r.json();
     if(!r.ok) throw new Error(d.error||'Error al iniciar sesión');
-    // Decode sessionToken to get the actual token
-    const decoded = atob(d.sessionToken);
-    const userToken = decoded.split(':').slice(1).join(':');
-    await loginWithData(email, userToken);
+    await loginWithData(email, d.token);
   }catch(e){ alert('Error: '+e.message); }
 }
 
@@ -634,6 +624,9 @@ async function loadImputarContext(){
 
   try {
     // Use server endpoint with user's email to get recent worklogs
+    // Mostrar contexto SIEMPRE aunque fallen los worklogs
+    document.getElementById('imputar-context').style.display='block';
+
     const params = new URLSearchParams({action:'personal', user:logUserEmail, dateFrom:df, dateTo:dt});
     const r = await fetch(`/api/worklogs?${params}`);
     if(!r.ok) return;
