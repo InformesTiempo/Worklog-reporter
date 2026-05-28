@@ -381,6 +381,11 @@ function switchTab(tab){
 
 // manager content now directly inside pane-manager
 
+// Inicializar mostrando la pestaña imputar por defecto
+window.addEventListener('DOMContentLoaded', () => {
+  switchTab('imputar');
+});
+
 // ── Personal view ───────────────────────────────
 function ssP(msg,t){
   const e=document.getElementById('pStatus');
@@ -788,10 +793,6 @@ function selectRecentIssue(key, summary){
   selectedIssueKey = key;
   document.getElementById('issueResult').innerHTML = `<span style="color:var(--accent)">${key}</span> — ${summary}`;
   document.getElementById('issueResult').style.color = 'var(--text)';
-}
-
-function getPersonalToken(){
-  return getCookie('jira_token') || localStorage.getItem('jira_token_bk') || null;
 }
 
 function parseTime(str){
