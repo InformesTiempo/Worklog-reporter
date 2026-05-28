@@ -142,7 +142,14 @@ async function getPersonalWorklogs(query) {
   if (!record) return { error: 'No autenticado' };
   const { email, token } = record;
 
-  const jql = `worklogAuthor = "${user}" AND worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}" ORDER BY updated DESC`;
+  // Jira Cloud requiere accountId en el JQL, no email
+  // Primero obtenemos el accountId del usuario
+  const myselfRes = await jiraFetch('/rest/api/3/myself', email, token);
+  if (!myselfRes.ok) return { error: 'No se pudo obtener el perfil de Jira' };
+  const myself = await myselfRes.json();
+  const accountId = myself.accountId;
+
+  const jql = `worklogAuthor = "${accountId}" AND worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}" ORDER BY updated DESC`;
   const searchRes = await jiraFetch(
     `/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=summary,worklog,issuetype&maxResults=100`,
     email, token
@@ -164,8 +171,9 @@ async function getPersonalWorklogs(query) {
       if (wRes.ok) { const wd = await wRes.json(); wls = wd.worklogs || []; }
     }
     for (const wl of wls) {
-      const authorEmail = wl.author?.emailAddress || '';
-      if (authorEmail.toLowerCase() !== user.toLowerCase()) continue;
+      // Filtrar por accountId
+      const wlAccountId = wl.author?.accountId || '';
+      if (wlAccountId !== accountId) continue;
       const started = new Date(wl.started);
       if (started < from || started > to) continue;
       worklogs.push({
