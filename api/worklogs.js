@@ -1,1189 +1,329 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jira Worklog Reporter · Educamos</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
-  :root { --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3350;--accent:#4f6ef7;--accent2:#7c3aed;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--text:#e2e8f0;--muted:#64748b;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif; }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;padding:2rem}
-  header{display:flex;align-items:center;gap:1rem;margin-bottom:2.5rem}
-  .logo{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
-  h1{font-family:var(--mono);font-size:1.4rem;letter-spacing:-.5px}
-  h1 span{color:var(--accent)}
-  .badge{margin-left:auto;background:var(--surface2);border:1px solid var(--border);padding:4px 12px;border-radius:20px;font-family:var(--mono);font-size:.7rem;color:var(--muted)}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem}
-  .card-title{font-family:var(--mono);font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:1rem}
-  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
-  .field-label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:6px;font-family:var(--mono)}
-  input[type=date],input[type=number]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;transition:border-color .2s}
-  input:focus{border-color:var(--accent)}
-  .chk-group{display:flex;gap:1.5rem;margin-top:6px}
-  .chk-group label{display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text);font-size:.9rem;font-family:var(--sans)}
-  .chk-group input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
-  .btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:8px;padding:12px 28px;font-family:var(--mono);font-size:.9rem;cursor:pointer;transition:opacity .2s,transform .1s;display:inline-flex;align-items:center;gap:8px}
-  .btn:hover{opacity:.9;transform:translateY(-1px)}
-  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
-  .btn-sec{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
-  .actions{display:flex;gap:1rem;align-items:center;margin-top:1rem}
-  #status{font-family:var(--mono);font-size:.8rem;padding:8px 16px;background:var(--surface2);border-radius:6px;display:none}
-  #status.loading{display:block;color:var(--accent)}
-  #status.error{display:block;color:var(--red)}
-  #status.success{display:block;color:var(--green)}
-  #results{display:none}
-  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
-  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem;text-align:center}
-  .stat-value{font-family:var(--mono);font-size:1.6rem;font-weight:600;margin-bottom:4px}
-  .stat-label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-  .twrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
-  table{width:100%;border-collapse:collapse;font-size:.85rem}
-  thead{background:var(--surface2)}
-  th{padding:12px 16px;text-align:left;font-family:var(--mono);font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
-  td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
-  tr:last-child td{border-bottom:none}
-  tr:hover td{background:var(--surface2)}
-  .avatar{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:600;margin-right:10px;flex-shrink:0}
-  .pcell{display:flex;align-items:center}
-  .pbar{width:100%;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-top:4px}
-  .pfill{height:100%;border-radius:3px}
-  .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-family:var(--mono);font-size:.72rem;font-weight:600}
-  .pg{background:rgba(34,197,94,.15);color:var(--green)}
-  .pr{background:rgba(239,68,68,.15);color:var(--red)}
-  .py{background:rgba(245,158,11,.15);color:var(--yellow)}
-  .hm{font-family:var(--mono);font-size:.9rem}
-  .stitle{font-family:var(--mono);font-size:.9rem;color:var(--text)}
-  .dtable{width:100%;border-collapse:collapse;font-size:.82rem}
-  .dtable th{padding:6px 8px;text-align:center;font-family:var(--mono);font-size:.68rem;color:var(--muted);border-bottom:1px solid var(--border);border-right:1px solid var(--border);white-space:nowrap;min-width:42px}
-  .dtable th:first-child{text-align:left;min-width:180px;position:sticky;left:0;background:var(--surface2);z-index:2}
-  .dtable th.weekend{background:rgba(100,116,139,.08);color:var(--muted)}
-  .dtable th.total-col{background:var(--surface2);font-weight:600;color:var(--text)}
-  .dtable td{padding:6px 8px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:center;font-family:var(--mono);font-size:.8rem}
-  .dtable td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1;font-family:var(--sans)}
-  .dtable tr:hover td:first-child{background:var(--surface2)}
-  .dtable td.weekend{background:rgba(100,116,139,.06)}
-  .dtable td.ok{background:rgba(34,197,94,.12);color:#4ade80}
-  .dtable td.partial{background:rgba(245,158,11,.12);color:#fbbf24}
-  .dtable td.low{background:rgba(239,68,68,.12);color:#f87171}
-  .dtable td.empty-work{background:rgba(239,68,68,.06)}
-  .dtable td.total-col{background:var(--surface2);font-weight:600;color:var(--text)}
-  .dtable tr:last-child td{border-bottom:none}
-  .tbtn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 12px;font-family:var(--mono);font-size:.72rem;cursor:pointer}
-  .tbtn:hover{border-color:var(--accent);color:var(--accent)}
-  .range-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:4px 12px;font-family:var(--mono);font-size:.72rem;cursor:pointer;transition:all .2s}
-  .range-btn:hover,.range-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
-  @media(max-width:768px){.grid-3{grid-template-columns:1fr}.stats-row{grid-template-columns:1fr 1fr}}
-</style>
-</head>
-<body>
-<header>
-  <div class="logo">⏱</div>
-  <div>
-    <h1>Jira <span>Worklog</span> Reporter</h1>
-    <div style="font-size:.75rem;color:var(--muted);margin-top:2px">Seguimiento de tiempo · Educamos</div>
-  </div>
-  <div class="badge">v4.0</div>
-</header>
+// api/worklogs.js — Vercel Serverless Function (CommonJS)
+// Acciones: saveCredentials, login, personal, findIssue, logWork, searchByPerson
 
-<!-- Tabs -->
-<div style="display:flex;gap:4px;margin-bottom:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;">
-  <button id="tab-imputar" onclick="switchTab('imputar')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;transition:all .2s;">✏️ Imputar</button>
-  <button id="tab-personal" onclick="switchTab('personal')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:transparent;color:var(--muted);transition:all .2s;">👤 Mi Tiempo</button>
-  <button id="tab-manager" onclick="switchTab('manager')" style="padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-family:var(--mono);font-size:.85rem;background:transparent;color:var(--muted);transition:all .2s;">📊 Managers</button>
-</div>
+const https = require('https');
 
-<!-- Personal Tab -->
-<div id="pane-personal" style="display:none;">
-  <div class="card">
-    <div class="card-title">👤 Mi tiempo en Jira</div>
-    <div class="grid-3" style="margin-bottom:1rem;align-items:end;">
-      <div>
-        <span class="field-label">Tu email de Jira</span>
-        <input type="email" id="jiraUser" placeholder="nombre.apellido@educamos.com" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;">
-        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">El email con el que entras a Jira</div>
-      </div>
-      <div>
-        <span class="field-label">Rango de fechas</span>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="date" id="pDateFrom" onclick="this.showPicker()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;" min="2020-01-01">
-          <span style="color:var(--muted)">→</span>
-          <input type="date" id="pDateTo" onclick="this.showPicker()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;" min="2020-01-01">
-        </div>
-        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
-          <button onclick="setRangeP('thisMonth')" class="range-btn">Este mes</button>
-          <button onclick="setRangeP('lastMonth')" class="range-btn">Mes anterior</button>
-          <button onclick="setRangeP('thisWeek')" class="range-btn">Esta semana</button>
-          <button onclick="setRangeP('last30')" class="range-btn">Últimos 30 días</button>
-        </div>
-      </div>
-      <div style="display:flex;align-items:flex-end;">
-        <button class="btn" onclick="runPersonal()" style="width:100%">▶ Ver mis horas</button>
-      </div>
-    </div>
-    <div id="pStatus"></div>
-  </div>
-  <div id="pResults" style="display:none;">
-    <div class="stats-row">
-      <div class="stat-card"><div class="stat-value" id="ps1" style="color:var(--green)">—</div><div class="stat-label">Horas totales</div></div>
-      <div class="stat-card"><div class="stat-value" id="ps2" style="color:var(--accent)">—</div><div class="stat-label">Días trabajados</div></div>
-      <div class="stat-card"><div class="stat-value" id="ps3" style="color:var(--yellow)">—</div><div class="stat-label">Issues</div></div>
-      <div class="stat-card"><div class="stat-value" id="ps4" style="color:var(--accent)">—</div><div class="stat-label">Media diaria</div></div>
-    </div>
-    <div class="card" style="padding:0;overflow:hidden;">
-      <div style="padding:1.2rem 1.5rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-        <div class="stitle">📋 Mis imputaciones por issue</div>
-        <button class="btn btn-sec" onclick="exportPersonalCSV()" style="padding:8px 16px;font-size:.8rem;">⬇ Exportar CSV</button>
-      </div>
-      <div style="overflow-x:auto;"><table id="pTable" class="daily-table" style="width:100%;border-collapse:collapse;font-size:.82rem;"></table></div>
-    </div>
-  </div>
-</div>
-
-<!-- Imputar Tab -->
-<div id="pane-imputar">
-  <div class="card">
-    <div class="card-title">⏱ Registrar tiempo en Jira</div>
-
-    <!-- Login / Register -->
-    <div id="token-setup" style="margin-bottom:1.5rem;padding:1rem;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <span style="font-family:var(--mono);font-size:.8rem;color:var(--muted);">🔑 Tu acceso a Jira</span>
-        <span id="token-status" style="font-size:.75rem;font-family:var(--mono);color:var(--muted);">No configurado</span>
-      </div>
-
-      <!-- Login form (default) -->
-      <div id="login-form">
-        <div style="display:grid;grid-template-columns:1fr 120px auto;gap:8px;align-items:center;">
-          <input type="email" id="logEmail" placeholder="Tu email de Jira" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;">
-          <input type="password" id="loginPin" placeholder="PIN (4 dígitos)" maxlength="4" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;text-align:center;letter-spacing:4px;" onkeydown="if(event.key==='Enter')doLogin()">
-          <button onclick="doLogin()" class="btn" style="padding:8px 16px;font-size:.82rem;">Entrar</button>
-        </div>
-        <div style="margin-top:8px;font-size:.72rem;color:var(--muted);">
-          ¿Primera vez? <a href="#" onclick="showRegister();return false;" style="color:var(--accent);">Regístrate aquí</a>
-        </div>
-      </div>
-
-      <!-- Register form (hidden) -->
-      <div id="register-form" style="display:none;">
-        <div style="font-size:.8rem;color:var(--text);margin-bottom:8px;font-family:var(--mono);">Registro — solo la primera vez</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 100px;gap:8px;margin-bottom:8px;">
-          <input type="email" id="regEmail" placeholder="Tu email de Jira" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;">
-          <input type="text" id="regToken" placeholder="Tu API token de Jira" autocomplete="off" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;">
-          <input type="password" id="regPin" placeholder="PIN 4 dig." maxlength="4" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;text-align:center;letter-spacing:4px;">
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button onclick="doRegister()" class="btn" style="padding:8px 16px;font-size:.82rem;">Guardar y entrar</button>
-          <button onclick="showLogin()" class="btn btn-sec" style="padding:8px 16px;font-size:.82rem;">Cancelar</button>
-        </div>
-        <div style="font-size:.72rem;color:var(--muted);margin-top:6px;">
-          Token en <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" style="color:var(--accent);">id.atlassian.com</a> · El PIN lo eliges tú, solo tú lo sabrás
-        </div>
-      </div>
-
-      <div id="logout-bar" style="display:none;margin-top:8px;">
-        <button onclick="doLogout()" class="btn btn-sec" style="padding:4px 12px;font-size:.75rem;">Cerrar sesión</button>
-      </div>
-    </div>
-
-    <!-- Recent issues & weekly summary -->
-    <div id="imputar-context" style="display:none;margin-bottom:1.5rem;">
-      <div>
-        <!-- Recent issues full width -->
-        <div>
-          <div style="font-family:var(--mono);font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📌 Issues recientes (últimos 7 días)</div>
-          <div id="recent-issues-list" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-        </div>
-
-      </div>
-
-    <!-- Log work form -->
-    <div class="grid-3" style="margin-bottom:1rem;">
-      <div>
-        <span class="field-label">Issue</span>
-        <div style="display:flex;gap:8px;">
-          <input type="text" id="issueSearch" placeholder="TES3-42372 o buscar..." style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;" onkeydown="if(event.key==='Enter')searchIssue()">
-          <button onclick="searchIssue()" class="btn btn-sec" style="padding:10px 14px;font-size:.85rem;">🔍</button>
-        </div>
-        <div id="issueResult" style="margin-top:6px;font-size:.8rem;color:var(--muted);font-family:var(--mono);"></div>
-      </div>
-      <div>
-        <span class="field-label">Fecha</span>
-        <input type="date" id="logDate" onclick="try{this.showPicker()}catch(e){}" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;">
-      </div>
-      <div>
-        <span class="field-label" style="font-size:.85rem;color:var(--text);font-weight:600;">⏱ Tiempo a registrar</span>
-        <input type="text" id="logTime" placeholder="ej: 8h, 8h 30m, 1,5h, 45m" 
-          style="width:100%;background:var(--bg);border:2px solid var(--accent);border-radius:10px;
-          padding:14px 16px;color:var(--text);font-family:var(--mono);font-size:1.2rem;
-          outline:none;font-weight:600;letter-spacing:1px;transition:border-color .2s;"
-          onfocus="this.style.borderColor='var(--accent2)'"
-          onblur="this.style.borderColor='var(--accent)'">
-      </div>
-    </div>
-    <div style="margin-bottom:1rem;">
-      <span class="field-label">Comentario (opcional)</span>
-      <input type="text" id="logComment" placeholder="Descripción del trabajo realizado..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--sans);font-size:.85rem;outline:none;">
-    </div>
-    <div style="display:flex;gap:1rem;align-items:center;">
-      <button class="btn" onclick="logWork()" style="padding:12px 28px;">⏱ Registrar tiempo</button>
-      <div id="logStatus" style="font-family:var(--mono);font-size:.8rem;display:none;padding:8px 16px;border-radius:6px;"></div>
-    </div>
-  </div>
-
-  <!-- Recent logs -->
-  <div class="card" id="recentLogs" style="display:none;">
-    <div class="card-title">✅ Últimas imputaciones registradas</div>
-    <div id="recentLogsList"></div>
-  </div>
-
-  <!-- Full weekly detail table -->
-  <div class="card" id="imputar-detail" style="display:none;">
-    <div class="card-title">📋 Detalle últimos 7 días</div>
-    <div style="overflow-x:auto;">
-      <table id="imputar-detail-table" class="dtable" style="width:100%;border-collapse:collapse;font-size:.82rem;"></table>
-    </div>
-  </div>
-</div>
-
-<!-- Manager Tab (hidden by default) -->
-<div id="pane-manager" style="display:none;">
-  <!-- Manager content - direct access for now -->
-  <div id="manager-content"></div>
-</div>
-
-<div id="manager-main"><div class="card">
-  <div class="card-title">⚙ Configurar informe — Vista Manager</div>
-  <div class="grid-3" style="margin-bottom:1.2rem">
-    <div>
-      <span class="field-label">Proyectos <span style="font-size:.7rem;color:var(--muted)">(opcional, vacío = todos)</span></span>
-      <div style="position:relative">
-        <div id="projSelector" id="projSelectorBtn" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
-          <span id="projLabel" style="color:var(--muted)">Todos los proyectos</span>
-          <span>▾</span>
-        </div>
-        <div id="projDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-top:4px;z-index:100;max-height:220px;overflow-y:auto;">
-          <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border);background:var(--surface2);">
-            <input type="checkbox" id="proj-all" id="projAllChk" style="accent-color:var(--accent)"> Todos los proyectos
-          </label>
-          <div id="projList"></div>
-        </div>
-      </div>
-    </div>
-    <div>
-      <span class="field-label">Equipo <span style="font-size:.7rem;color:var(--muted)">(opcional)</span></span>
-      <div style="position:relative">
-        <div id="groupSelector" id="groupSelectorBtn" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
-          <span id="groupLabel" style="color:var(--muted)">Todos los equipos</span>
-          <span>▾</span>
-        </div>
-        <div id="groupDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-top:4px;z-index:100;max-height:220px;overflow-y:auto;">
-          <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border);background:var(--surface2);">
-            <input type="checkbox" id="grp-all" id="grpAllChk" style="accent-color:var(--accent)"> Todos los equipos
-          </label>
-          <div id="groupList"></div>
-        </div>
-      </div>
-    </div>
-    <div>
-      <span class="field-label">Horas laborables/día</span>
-      <input type="number" id="dailyHours" value="8.5" step="0.5" min="1" max="24" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;">
-    </div>
-  </div>
-  <div class="grid-3" style="margin-bottom:1rem;align-items:end;">
-    <div>
-      <span class="field-label">Rango de fechas</span>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <div style="position:relative;flex:1">
-          <input type="date" id="dateFrom" onclick="try{this.showPicker()}catch(e){}" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;" min="2020-01-01">
-        </div>
-        <span style="color:var(--muted);font-size:.85rem">→</span>
-        <div style="position:relative;flex:1">
-          <input type="date" id="dateTo" onclick="try{this.showPicker()}catch(e){}" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:.85rem;outline:none;cursor:pointer;" min="2020-01-01">
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
-        <button onclick="setRange('thisMonth')" class="range-btn" id="rb-thisMonth">Este mes</button>
-        <button onclick="setRange('lastMonth')" class="range-btn" id="rb-lastMonth">Mes anterior</button>
-        <button onclick="setRange('thisWeek')" class="range-btn" id="rb-thisWeek">Esta semana</button>
-        <button onclick="setRange('lastWeek')" class="range-btn" id="rb-lastWeek">Semana anterior</button>
-        <button onclick="setRange('last30')" class="range-btn" id="rb-last30">Últimos 30 días</button>
-      </div>
-    </div>
-    <div></div>
-    <div style="display:flex;align-items:flex-end">
-      <button class="btn" onclick="run()" style="width:100%">▶ Generar informe</button>
-    </div>
-  </div>
-  <div id="status"></div>
-</div>
-
-<div id="results">
-  <div class="stats-row">
-    <div class="stat-card"><div class="stat-value" id="s1" style="color:var(--accent)">—</div><div class="stat-label">Personas</div></div>
-    <div class="stat-card"><div class="stat-value" id="s2" style="color:var(--green)">—</div><div class="stat-label">Horas totales</div></div>
-    <div class="stat-card"><div class="stat-value" id="s3" style="color:var(--yellow)">—</div><div class="stat-label">Issues</div></div>
-    <div class="stat-card"><div class="stat-value" id="s4" style="color:var(--accent)">—</div><div class="stat-label">Cumplimiento</div></div>
-  </div>
-  <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
-    <button class="btn btn-sec" onclick="exportCSV()" style="padding:8px 16px;font-size:.8rem">⬇ Exportar CSV</button>
-  </div>
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-      <div class="card-title" style="margin:0">📅 Detalle diario</div>
-      
-    </div>
-    <div id="daily" style="overflow-x:auto"></div>
-  </div>
-</div>
-</div><!-- end manager-main -->
-
-<script>
-// Cookie helpers
-function setCookie(name, value, days=365){
-  const d = new Date();
-  d.setTime(d.getTime() + days*24*60*60*1000);
-  document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
+// ── Upstash Redis helpers ──────────────────────────────────────────────────
+function upstashUrl() {
+  return process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 }
-function getCookie(name){
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-  return match ? decodeURIComponent(match[2]) : null;
-}
-function deleteCookie(name){
-  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`;
+function upstashToken() {
+  return process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 }
 
-let logUserEmail = getCookie('jira_email') || localStorage.getItem('jira_email_bk') || '';
-let capturedToken = '';
+async function kvGet(key) {
+  const res = await fetch(`${upstashUrl()}/get/${encodeURIComponent(key)}`, {
+    headers: { Authorization: `Bearer ${upstashToken()}` }
+  });
+  const j = await res.json();
+  return j.result ? JSON.parse(j.result) : null;
+}
 
-// ── Tab switching ──────────────────────────────
-function switchTab(tab){
-  ['personal','manager','imputar'].forEach(t=>{
-    document.getElementById('pane-'+t).style.display = tab===t?'block':'none';
-    const btn = document.getElementById('tab-'+t);
-    if(btn){
-      btn.style.background = tab===t?'linear-gradient(135deg,var(--accent),var(--accent2))':'transparent';
-      btn.style.color = tab===t?'#fff':'var(--muted)';
+async function kvSet(key, value) {
+  await fetch(`${upstashUrl()}/set/${encodeURIComponent(key)}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${upstashToken()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(JSON.stringify(value))
+  });
+}
+
+// ── Jira helpers ──────────────────────────────────────────────────────────
+const JIRA_BASE = 'https://jira.grupo-sm.com';
+
+async function jiraFetch(path, email, token, options = {}) {
+  const auth = Buffer.from(`${email}:${token}`).toString('base64');
+  const url = `${JIRA_BASE}${path}`;
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      Authorization: `Basic ${auth}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...(options.headers || {})
     }
   });
-  if(tab==='imputar') checkTokenStatus();
-  if(tab==='personal'){
-    const savedEmail = sessionStorage.getItem('jira_email') || localStorage.getItem('jira_email_bk');
-    if(savedEmail) document.getElementById('jiraUser').value = savedEmail;
+  return res;
+}
+
+// ── Acciones ──────────────────────────────────────────────────────────────
+
+// POST ?action=saveCredentials  { email, token, pin }
+async function saveCredentials(body) {
+  const { email, token, pin } = body;
+  if (!email || !token || !pin) return { error: 'Faltan campos' };
+  if (!/^\d{4}$/.test(pin)) return { error: 'PIN debe ser 4 dígitos' };
+
+  // Verificar que el token es válido contra Jira antes de guardar
+  const test = await jiraFetch('/rest/api/2/myself', email, token);
+  if (!test.ok) return { error: 'Token o email incorrecto en Jira' };
+
+  const key = `wl:${email.toLowerCase()}`;
+  await kvSet(key, { email, token, pin });
+  return { ok: true };
+}
+
+// POST ?action=login  { email, pin }
+async function login(body) {
+  const { email, pin } = body;
+  if (!email || !pin) return { error: 'Faltan campos' };
+
+  const key = `wl:${email.toLowerCase()}`;
+  const record = await kvGet(key);
+  if (!record) return { error: 'Usuario no registrado' };
+  if (record.pin !== pin) return { error: 'PIN incorrecto' };
+
+  return { ok: true, token: record.token, email: record.email };
+}
+
+// GET ?action=personal&user=email&dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD
+async function getPersonalWorklogs(query, authEmail, authToken) {
+  const { user, dateFrom, dateTo } = query;
+
+  // Buscar issues con worklogs en el periodo
+  const jql = encodeURIComponent(
+    `worklogAuthor = "${user}" AND worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}" ORDER BY updated DESC`
+  );
+  const searchRes = await jiraFetch(
+    `/rest/api/2/search?jql=${jql}&fields=summary,worklog,issuetype,priority&maxResults=100`,
+    authEmail, authToken
+  );
+  if (!searchRes.ok) {
+    const e = await searchRes.json();
+    return { error: e.errorMessages?.[0] || `Error ${searchRes.status}` };
   }
-}
+  const searchData = await searchRes.json();
 
-// Move manager content on load
-window.addEventListener('DOMContentLoaded', () => {
-  const mc = document.getElementById('manager-content');
-  const mm = document.getElementById('manager-main');
-  if(mm && mc) mc.appendChild(mm);
-});
+  const worklogs = [];
+  const from = new Date(dateFrom);
+  const to = new Date(dateTo);
+  to.setHours(23, 59, 59);
 
-// ── Personal view ───────────────────────────────
-function ssP(msg,t){
-  const e=document.getElementById('pStatus');
-  e.textContent=msg;
-  e.className=t;
-  e.style.display=msg?'block':'none';
-  if(t==='loading') e.style.color='var(--accent)';
-  else if(t==='error') e.style.color='var(--red)';
-  else e.style.color='var(--green)';
-  e.style.padding='8px 16px';
-  e.style.background='var(--surface2)';
-  e.style.borderRadius='6px';
-  e.style.fontFamily='var(--mono)';
-  e.style.fontSize='.8rem';
-}
-
-function setRangeP(type){
-  const now=new Date();
-  let from,to;
-  if(type==='thisMonth'){from=new Date(now.getFullYear(),now.getMonth(),1);to=new Date(now.getFullYear(),now.getMonth()+1,0);}
-  else if(type==='lastMonth'){from=new Date(now.getFullYear(),now.getMonth()-1,1);to=new Date(now.getFullYear(),now.getMonth(),0);}
-  else if(type==='thisWeek'){const d=now.getDay()||7;from=new Date(now);from.setDate(now.getDate()-d+1);to=new Date(from);to.setDate(from.getDate()+6);}
-  else if(type==='last30'){from=new Date(now);from.setDate(now.getDate()-29);to=new Date(now);}
-  const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  document.getElementById('pDateFrom').value=fmt(from);
-  document.getElementById('pDateTo').value=fmt(to);
-}
-
-async function runPersonal(){
-  // Auto-fill from saved token if available
-  const savedEmail = getCookie('jira_email');
-  if(savedEmail && !document.getElementById('jiraUser').value.trim()){
-    document.getElementById('jiraUser').value = savedEmail;
-  }
-  const username=document.getElementById('jiraUser').value.trim().toLowerCase();
-  const df=document.getElementById('pDateFrom').value;
-  const dt=document.getElementById('pDateTo').value;
-  if(!username){ssP('⚠ Introduce tu usuario de Jira','error');return;}
-  if(!df||!dt){ssP('⚠ Indica las fechas','error');return;}
-
-  ssP('⏳ Buscando tus imputaciones...','loading');
-  document.getElementById('pResults').style.display='none';
-
-  try{
-    // Use email directly
-    const user=username;
-
-    // Fetch worklogs for this user
-    const params=new URLSearchParams({action:'personal',user,dateFrom:df,dateTo:dt});
-    const r=await fetch(`/api/worklogs?${params}`);
-    if(!r.ok) throw new Error(`Error ${r.status}`);
-    const data=await r.json();
-    const worklogs=data.worklogs||[];
-
-    if(!worklogs.length){ssP('No se encontraron imputaciones en este período','error');return;}
-
-    // Group by issue
-    const issueMap={};
-    let totalSecs=0;
-    const daySet=new Set();
-    const allDates=[];
-    const cur=new Date(df+'T00:00:00'),end=new Date(dt+'T00:00:00');
-    while(cur<=end){allDates.push(cur.toISOString().split('T')[0]);cur.setDate(cur.getDate()+1);}
-
-    for(const wl of worklogs){
-      const key=wl.issueKey;
-      const ds=wl.started.split('T')[0];
-      if(ds < df || ds > dt) continue; // filter to selected range only
-      const secs=wl.timeSpentSeconds||0;
-      if(!issueMap[key]) issueMap[key]={summary:wl.issueSummary||key,days:{},total:0};
-      issueMap[key].days[ds]=(issueMap[key].days[ds]||0)+secs;
-      issueMap[key].total+=secs;
-      totalSecs+=secs;
-      daySet.add(ds);
+  for (const issue of searchData.issues || []) {
+    // Si hay más de 20 worklogs en el issue, hay que paginar
+    let issueWorklogs = issue.fields.worklog?.worklogs || [];
+    if ((issue.fields.worklog?.total || 0) > 20) {
+      const wRes = await jiraFetch(`/rest/api/2/issue/${issue.key}/worklog`, authEmail, authToken);
+      if (wRes.ok) {
+        const wData = await wRes.json();
+        issueWorklogs = wData.worklogs || [];
+      }
     }
 
-    // Stats
-    const workDays=[...daySet].filter(d=>{const dd=new Date(d+'T00:00:00');return dd.getDay()!==0&&dd.getDay()!==6;});
-    document.getElementById('ps1').textContent=(totalSecs/3600).toFixed(1)+'h';
-    document.getElementById('ps2').textContent=workDays.length;
-    document.getElementById('ps3').textContent=Object.keys(issueMap).length;
-    document.getElementById('ps4').textContent=workDays.length?(totalSecs/3600/workDays.length).toFixed(1)+'h':'—';
+    for (const wl of issueWorklogs) {
+      if (!wl.author?.emailAddress?.toLowerCase().includes(user.toLowerCase()) &&
+          !wl.author?.name?.toLowerCase().includes(user.toLowerCase()) &&
+          wl.author?.emailAddress?.toLowerCase() !== user.toLowerCase()) continue;
 
-    // Build table
-    const dow=['D','L','M','X','J','V','S'];
-    const thead=`<thead><tr>
-      <th style="text-align:left;min-width:80px;padding:8px 10px;font-family:var(--mono);font-size:.7rem;color:var(--muted);border-bottom:1px solid var(--border);">Issue</th>
-      <th style="text-align:left;min-width:200px;padding:8px 10px;font-family:var(--mono);font-size:.7rem;color:var(--muted);border-bottom:1px solid var(--border);">Resumen</th>
-      <th style="min-width:60px;padding:8px 10px;font-family:var(--mono);font-size:.7rem;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface2);">Σ Total</th>
-      ${allDates.map(d=>{const dd=new Date(d+'T00:00:00');const isWE=dd.getDay()===0||dd.getDay()===6;return`<th style="text-align:center;padding:6px 4px;font-family:var(--mono);font-size:.68rem;color:var(--muted);border-bottom:1px solid var(--border);border-right:1px solid var(--border);min-width:36px;background:${isWE?'rgba(100,116,139,.1)':'inherit'}">${dow[dd.getDay()]}<br>${d.slice(8)}/${d.slice(5,7)}</th>`;}).join('')}
-    </tr></thead>`;
+      const started = new Date(wl.started);
+      if (started < from || started > to) continue;
 
-    const rows=Object.entries(issueMap).sort((a,b)=>b[1].total-a[1].total).map(([key,data])=>{
-      const cells=allDates.map(d=>{
-        const dd=new Date(d+'T00:00:00');
-        const isWE=dd.getDay()===0||dd.getDay()===6;
-        const s=data.days[d]||0;
-        if(isWE) return`<td style="background:rgba(100,116,139,.06);border-right:1px solid var(--border);text-align:center;">${s>0?((s/3600).toFixed(1)):''}</td>`;
-        if(!s) return`<td style="border-right:1px solid var(--border);text-align:center;color:var(--muted);">—</td>`;
-        const h=(s/3600).toFixed(1);
-        return`<td style="border-right:1px solid var(--border);text-align:center;background:rgba(79,110,247,.12);color:#818cf8;font-family:var(--mono);font-size:.8rem;">${h}</td>`;
-      }).join('');
-      return`<tr>
-        <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:.8rem;color:var(--accent);white-space:nowrap;">${key}</td>
-        <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:.82rem;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${data.summary}</td>
-        <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-family:var(--mono);font-weight:600;text-align:center;background:var(--surface2);">${(data.total/3600).toFixed(1)}h</td>
-        ${cells}
-      </tr>`;
-    }).join('');
+      worklogs.push({
+        issueKey: issue.key,
+        issueSummary: issue.fields.summary,
+        issueType: issue.fields.issuetype?.name,
+        timeSpentSeconds: wl.timeSpentSeconds,
+        timeSpent: wl.timeSpent,
+        started: wl.started,
+        comment: wl.comment || ''
+      });
+    }
+  }
 
-    // Total row
-    const totalRow=`<tr style="background:var(--surface2);">
-      <td colspan="2" style="padding:8px 10px;font-family:var(--mono);font-size:.8rem;font-weight:600;">TOTAL</td>
-      <td style="padding:8px 10px;font-family:var(--mono);font-weight:600;text-align:center;color:var(--green);">${(totalSecs/3600).toFixed(1)}h</td>
-      ${allDates.map(d=>{
-        const dd=new Date(d+'T00:00:00');const isWE=dd.getDay()===0||dd.getDay()===6;
-        const dayTotal=Object.values(issueMap).reduce((s,iss)=>s+(iss.days[d]||0),0);
-        if(isWE) return`<td style="background:rgba(100,116,139,.06);text-align:center;border-right:1px solid var(--border);font-family:var(--mono);font-size:.8rem;">${dayTotal>0?((dayTotal/3600).toFixed(1)):''}</td>`;
-        if(!dayTotal) return`<td style="border-right:1px solid var(--border);text-align:center;color:var(--muted);">—</td>`;
-        const h=(dayTotal/3600).toFixed(1);
-        let col=h>=8?'var(--green)':h>=4?'var(--yellow)':'var(--red)';
-        return`<td style="border-right:1px solid var(--border);text-align:center;font-family:var(--mono);font-size:.8rem;font-weight:600;color:${col};">${h}</td>`;
-      }).join('')}
-    </tr>`;
-
-    document.getElementById('pTable').innerHTML=thead+`<tbody>${rows}${totalRow}</tbody>`;
-    document.getElementById('pResults').style.display='block';
-    ssP(`✓ ${Object.keys(issueMap).length} issues encontrados`,'success');
-
-  }catch(err){ssP(`✗ ${err.message}`,'error');}
+  const totalSeconds = worklogs.reduce((s, w) => s + w.timeSpentSeconds, 0);
+  return { worklogs, totalSeconds };
 }
 
-let pData=[];
-function exportPersonalCSV(){
-  // Simple export of the table
-  const table=document.getElementById('pTable');
-  if(!table) return;
-  const rows=[...table.querySelectorAll('tr')].map(r=>[...r.querySelectorAll('th,td')].map(c=>c.textContent.trim()).join(','));
-  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mis-horas.csv';a.click();
-}
+// GET ?action=findIssue&q=TEXT
+async function findIssue(query, authEmail, authToken) {
+  const { q } = query;
+  if (!q) return { issues: [] };
 
-// ── Imputar (log work) ─────────────────────────
-
-function showRegister(){ document.getElementById('login-form').style.display='none'; document.getElementById('register-form').style.display='block'; }
-function showLogin(){ document.getElementById('login-form').style.display='block'; document.getElementById('register-form').style.display='none'; }
-
-async function doRegister(){
-  const email = document.getElementById('regEmail').value.trim().toLowerCase();
-  const token = document.getElementById('regToken').value.trim();
-  const pin = document.getElementById('regPin').value.trim();
-  if(!email||!token||!pin){ alert('Completa todos los campos'); return; }
-  if(!/^\d{4}$/.test(pin)){ alert('El PIN debe ser exactamente 4 dígitos'); return; }
-  try{
-    const r = await fetch('/api/worklogs?action=saveCredentials', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({email, token, pin})
-    });
-    const d = await r.json();
-    if(!r.ok) throw new Error(d.error||'Error al guardar');
-    // Auto login after register
-    await loginWithData(email, token);
-    alert('✓ Registro completado. Ya puedes usar la app.');
-  }catch(e){ alert('Error: '+e.message); }
-}
-
-async function doLogin(){
-  const email = document.getElementById('logEmail').value.trim().toLowerCase();
-  const pin = document.getElementById('loginPin').value.trim();
-  if(!email||!pin){ alert('Introduce tu email y PIN'); return; }
-  try{
-    const r = await fetch('/api/worklogs?action=login', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({email, pin})
-    });
-    const d = await r.json();
-    if(!r.ok) throw new Error(d.error||'Error al iniciar sesión');
-    // Decode sessionToken to get the actual token
-    const decoded = atob(d.sessionToken);
-    const userToken = decoded.split(':').slice(1).join(':');
-    await loginWithData(email, userToken);
-  }catch(e){ alert('Error: '+e.message); }
-}
-
-async function loginWithData(email, token){
-  logUserEmail = email;
-  // Store in sessionStorage (tab-based, no browser restrictions)
-  sessionStorage.setItem('jira_email', email);
-  sessionStorage.setItem('jira_token', token);
-  // Also try localStorage as backup
-  try{ localStorage.setItem('jira_email_bk', email); localStorage.setItem('jira_token_bk', token); }catch(e){}
-  updateLoginUI(email);
-  loadImputarContext();
-}
-
-function doLogout(){
-  logUserEmail = '';
-  sessionStorage.removeItem('jira_email');
-  sessionStorage.removeItem('jira_token');
-  try{ localStorage.removeItem('jira_email_bk'); localStorage.removeItem('jira_token_bk'); }catch(e){}
-  updateLoginUI(null);
-  document.getElementById('imputar-context').style.display='none';
-  document.getElementById('imputar-detail').style.display='none';
-}
-
-function updateLoginUI(email){
-  const status = document.getElementById('token-status');
-  const logoutBar = document.getElementById('logout-bar');
-  const loginForm = document.getElementById('login-form');
-  if(email){
-    status.textContent = '✓ Configurado como ' + email;
-    status.style.color = 'var(--green)';
-    logoutBar.style.display = 'block';
-    loginForm.style.display = 'none';
+  const isKey = /^[A-Z]+-\d+$/.test(q.trim().toUpperCase());
+  let jql;
+  if (isKey) {
+    jql = `key = "${q.trim().toUpperCase()}"`;
   } else {
-    status.textContent = 'No configurado';
-    status.style.color = 'var(--muted)';
-    logoutBar.style.display = 'none';
-    loginForm.style.display = 'block';
-    showLogin();
+    jql = `summary ~ "${q}" ORDER BY updated DESC`;
   }
+
+  const res = await jiraFetch(
+    `/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,issuetype,status&maxResults=10`,
+    authEmail, authToken
+  );
+  if (!res.ok) return { issues: [] };
+  const data = await res.json();
+
+  return {
+    issues: (data.issues || []).map(i => ({
+      key: i.key,
+      summary: i.fields.summary,
+      type: i.fields.issuetype?.name,
+      status: i.fields.status?.name
+    }))
+  };
 }
 
-function checkTokenStatus(){
-  // Try sessionStorage first, then localStorage backup
-  const email = sessionStorage.getItem('jira_email') || localStorage.getItem('jira_email_bk');
-  const token = sessionStorage.getItem('jira_token') || localStorage.getItem('jira_token_bk');
-  if(email && token){
-    logUserEmail = email;
-    updateLoginUI(email);
-    loadImputarContext();
+// POST ?action=logWork  { issueKey, timeSpentSeconds, date, comment, userEmail, userToken }
+async function logWork(body) {
+  const { issueKey, timeSpentSeconds, date, comment, userEmail, userToken } = body;
+  if (!issueKey || !timeSpentSeconds || !date || !userEmail || !userToken) {
+    return { error: 'Faltan campos obligatorios' };
   }
+
+  const started = `${date}T09:00:00.000+0000`;
+  const payload = { timeSpentSeconds, started };
+  if (comment) payload.comment = comment;
+
+  const res = await jiraFetch(
+    `/rest/api/2/issue/${issueKey}/worklog`,
+    userEmail, userToken,
+    { method: 'POST', body: JSON.stringify(payload) }
+  );
+
+  if (!res.ok) {
+    const e = await res.json();
+    return { error: e.errorMessages?.[0] || `Error ${res.status}` };
+  }
+  const data = await res.json();
+  return { ok: true, id: data.id };
 }
 
-function getPersonalToken(){
-  return sessionStorage.getItem('jira_token') || localStorage.getItem('jira_token_bk') || null;
-}
+// GET ?action=searchByPerson&groups=G1,G2&dateFrom=...&dateTo=...&project=P1,P2
+async function searchByPerson(query, authEmail, authToken) {
+  const { groups, dateFrom, dateTo, project } = query;
+  if (!groups) return { error: 'Falta groups' };
 
-function saveToken(){ /* legacy - not used */ }
-function clearToken(){ doLogout(); }
-function toggleTokenVisibility(){ /* legacy */ }
+  const groupList = groups.split(',').map(g => g.trim()).filter(Boolean);
 
-async function loadImputarContext(){
-  const token = getPersonalToken();
-  if(!token || !logUserEmail) return;
+  // Obtener miembros de cada grupo
+  const members = new Map();
+  for (const group of groupList) {
+    const res = await jiraFetch(
+      `/rest/api/2/group/member?groupname=${encodeURIComponent(group)}&maxResults=50`,
+      authEmail, authToken
+    );
+    if (!res.ok) continue;
+    const data = await res.json();
+    for (const u of data.values || []) {
+      members.set(u.emailAddress || u.name, u.displayName || u.emailAddress || u.name);
+    }
+  }
 
-  // Get last 7 days range
-  const now = new Date();
-  const from = new Date(now); from.setDate(now.getDate()-6);
-  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const df = fmt(from), dt = fmt(now);
+  if (members.size === 0) return { personWorklogs: {} };
 
-  try {
-    // Use server endpoint with user's email to get recent worklogs
-    const params = new URLSearchParams({action:'personal', user:logUserEmail, dateFrom:df, dateTo:dt});
-    const r = await fetch(`/api/worklogs?${params}`);
-    if(!r.ok) return;
-    const data = await r.json();
-    const wls = data.worklogs || [];
-    console.log('Recent worklogs loaded:', wls.length);
+  // Para cada miembro obtener worklogs
+  const personWorklogs = {};
 
-    // Build issue map
-    const issueMap = {};
+  for (const [userEmail, displayName] of members) {
+    let jql = `worklogAuthor = "${userEmail}" AND worklogDate >= "${dateFrom}" AND worklogDate <= "${dateTo}"`;
+    if (project) {
+      const projs = project.split(',').map(p => `"${p.trim()}"`).join(',');
+      jql += ` AND project in (${projs})`;
+    }
+    jql += ' ORDER BY updated DESC';
+
+    const searchRes = await jiraFetch(
+      `/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,worklog&maxResults=100`,
+      authEmail, authToken
+    );
+    if (!searchRes.ok) continue;
+    const searchData = await searchRes.json();
+
+    let totalSecs = 0;
     const dailyMap = {};
-    for(const wl of wls){
-      if(!issueMap[wl.issueKey]) issueMap[wl.issueKey] = wl.issueSummary || wl.issueKey;
-      const d = wl.started.split('T')[0];
-      dailyMap[d] = (dailyMap[d]||0) + (wl.timeSpentSeconds||0);
+
+    for (const issue of searchData.issues || []) {
+      let wls = issue.fields.worklog?.worklogs || [];
+      if ((issue.fields.worklog?.total || 0) > 20) {
+        const wRes = await jiraFetch(`/rest/api/2/issue/${issue.key}/worklog`, authEmail, authToken);
+        if (wRes.ok) { const wd = await wRes.json(); wls = wd.worklogs || []; }
+      }
+
+      const from = new Date(dateFrom);
+      const to = new Date(dateTo); to.setHours(23, 59, 59);
+
+      for (const wl of wls) {
+        const authorId = wl.author?.emailAddress || wl.author?.name || '';
+        if (!authorId.toLowerCase().includes(userEmail.toLowerCase()) &&
+            authorId.toLowerCase() !== userEmail.toLowerCase()) continue;
+
+        const started = new Date(wl.started);
+        if (started < from || started > to) continue;
+
+        totalSecs += wl.timeSpentSeconds;
+        const day = wl.started.substring(0, 10);
+        dailyMap[day] = (dailyMap[day] || 0) + wl.timeSpentSeconds;
+      }
     }
 
-    // Render recent issues as clickable chips
-    const issuesList = document.getElementById('recent-issues-list');
-    const keys = Object.keys(issueMap);
-    if(keys.length){
-      issuesList.innerHTML = keys.map(k=>{
-        const summary = issueMap[k]||k;
-        const short = summary.length>40 ? summary.slice(0,40)+'...' : summary;
-        return `<button onclick="selectRecentIssue('${k}','${summary.replace(/'/g,"\'").replace(/"/g,'&quot;')}')"
-          title="${summary}"
-          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;
-          font-size:.78rem;color:var(--text);cursor:pointer;transition:all .2s;text-align:left;max-width:100%;"
-          onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
-          onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)'">
-          <span style="font-family:var(--mono);color:var(--accent);margin-right:6px">${k}</span>${short}
-        </button>`;
-      }).join('');
-    } else {
-      issuesList.innerHTML = '<span style="font-size:.8rem;color:var(--muted)">Sin imputaciones esta semana</span>';
-    }
-
-    // Build daily totals and issue-day map
-    const days = [];
-    const cur2 = new Date(from);
-    while(cur2 <= now){ days.push(fmt(cur2)); cur2.setDate(cur2.getDate()+1); }
-    const dow = ['D','L','M','X','J','V','S'];
-
-    // Weekly summary pills
-    const weekly = document.getElementById('weekly-summary');
-    if(weekly) weekly.innerHTML = days.map(d=>{
-      const dd = new Date(d+'T00:00:00');
-      const isWE = dd.getDay()===0||dd.getDay()===6;
-      const secs = dailyMap[d]||0;
-      const h = secs ? (secs/3600).toFixed(1) : '—';
-      let bg='var(--surface2)', color='var(--muted)';
-      if(secs >= 8*3600){ bg='rgba(34,197,94,.15)'; color='var(--green)'; }
-      else if(secs > 0){ bg='rgba(245,158,11,.15)'; color='var(--yellow)'; }
-      else if(!isWE){ bg='rgba(239,68,68,.08)'; color='var(--red)'; }
-      return `<div style="flex:1;background:${bg};border-radius:8px;padding:8px 4px;text-align:center;min-width:38px;">
-        <div style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">${dow[dd.getDay()]}</div>
-        <div style="font-family:var(--mono);font-size:.68rem;margin-top:1px">${d.slice(8)}/${d.slice(5,7)}</div>
-        <div style="font-family:var(--mono);font-size:.82rem;font-weight:600;color:${color};margin-top:3px">${h}</div>
-      </div>`;
-    }).join('');
-
-    // Build issue-day map for detail table — only for dates in range
-    const issueDayMap = {};
-    for(const wl of wls){
-      const k = wl.issueKey;
-      const d = wl.started.split('T')[0];
-      if(d < df || d > dt) continue; // skip dates outside range
-      const s = wl.timeSpentSeconds||0;
-      if(!issueDayMap[k]) issueDayMap[k] = { summary: wl.issueSummary||k, days:{}, total:0 };
-      issueDayMap[k].days[d] = (issueDayMap[k].days[d]||0) + s;
-      issueDayMap[k].total += s;
-    }
-
-    // Render detail table
-    if(Object.keys(issueDayMap).length){
-      const dailyTarget = 8.5 * 3600;
-      const thead = `<thead><tr>
-        <th style="text-align:left;min-width:80px;padding:7px 10px;font-family:var(--mono);font-size:.68rem;color:var(--muted);border-bottom:1px solid var(--border);position:sticky;left:0;background:var(--surface2)">Issue</th>
-        <th style="text-align:left;min-width:180px;padding:7px 10px;font-family:var(--mono);font-size:.68rem;color:var(--muted);border-bottom:1px solid var(--border)">Resumen</th>
-        <th style="padding:7px 10px;font-family:var(--mono);font-size:.68rem;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface2);text-align:center">Total</th>
-        ${days.map(d=>{
-          const dd=new Date(d+'T00:00:00');
-          const isWE=dd.getDay()===0||dd.getDay()===6;
-          return`<th style="text-align:center;padding:6px 4px;font-family:var(--mono);font-size:.68rem;color:var(--muted);border-bottom:1px solid var(--border);border-right:1px solid var(--border);min-width:40px;background:${isWE?'rgba(100,116,139,.1)':'inherit'}">${dow[dd.getDay()]}<br>${d.slice(8)}/${d.slice(5,7)}</th>`;
-        }).join('')}
-      </tr></thead>`;
-
-      const rows = Object.entries(issueDayMap).sort((a,b)=>b[1].total-a[1].total).map(([k,d])=>{
-        const short = (d.summary||k).length>35?(d.summary||k).slice(0,35)+'...':(d.summary||k);
-        const cells = days.map(date=>{
-          const dd=new Date(date+'T00:00:00');
-          const isWE=dd.getDay()===0||dd.getDay()===6;
-          const s=d.days[date]||0;
-          if(isWE) return`<td style="background:rgba(100,116,139,.06);border-right:1px solid var(--border);text-align:center;font-family:var(--mono);font-size:.78rem;color:var(--muted)">${s>0?((s/3600).toFixed(1)):''}</td>`;
-          if(!s) return`<td style="border-right:1px solid var(--border);text-align:center;color:var(--muted)">—</td>`;
-          const h=(s/3600).toFixed(1);
-          return`<td style="border-right:1px solid var(--border);text-align:center;background:rgba(79,110,247,.12);color:#818cf8;font-family:var(--mono);font-size:.78rem">${h}</td>`;
-        }).join('');
-        return`<tr>
-          <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:.78rem;color:var(--accent);cursor:pointer;position:sticky;left:0;background:var(--surface)" onclick="selectRecentIssue('${k}','${(d.summary||k).replace(/'/g,"\'")}')">${k}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:.78rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d.summary||k}">${short}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-family:var(--mono);font-weight:600;text-align:center;background:var(--surface2)">${(d.total/3600).toFixed(1)}h</td>
-          ${cells}
-        </tr>`;
-      }).join('');
-
-      // Total row
-      const totalRow=`<tr style="background:var(--surface2)">
-        <td colspan="2" style="padding:7px 10px;font-family:var(--mono);font-size:.78rem;font-weight:600">TOTAL</td>
-        <td style="padding:7px 10px;font-family:var(--mono);font-weight:600;text-align:center;color:var(--green)">${(Object.values(issueDayMap).reduce((s,d)=>s+d.total,0)/3600).toFixed(1)}h</td>
-        ${days.map(date=>{
-          const dd=new Date(date+'T00:00:00');const isWE=dd.getDay()===0||dd.getDay()===6;
-          const s=Object.values(issueDayMap).reduce((t,d)=>t+(d.days[date]||0),0);
-          if(isWE) return`<td style="background:rgba(100,116,139,.06);text-align:center;border-right:1px solid var(--border);font-family:var(--mono);font-size:.78rem;color:var(--muted)">${s>0?((s/3600).toFixed(1)):''}</td>`;
-          if(!s) return`<td style="border-right:1px solid var(--border);text-align:center;color:var(--muted)">—</td>`;
-          const h=(s/3600).toFixed(1);
-          let c=s>=dailyTarget?'var(--green)':s>=dailyTarget*.5?'var(--yellow)':'var(--red)';
-          return`<td style="border-right:1px solid var(--border);text-align:center;font-family:var(--mono);font-size:.78rem;font-weight:600;color:${c}">${h}</td>`;
-        }).join('')}
-      </tr>`;
-
-      document.getElementById('imputar-detail-table').innerHTML = thead+`<tbody>${rows}${totalRow}</tbody>`;
-      document.getElementById('imputar-detail').style.display='block';
-    }
-
-    document.getElementById('imputar-context').style.display='block';
-  } catch(e){ console.log('Context load error:', e); }
-}
-
-function selectRecentIssue(key, summary){
-  document.getElementById('issueSearch').value = key;
-  selectedIssueKey = key;
-  document.getElementById('issueResult').innerHTML = `<span style="color:var(--accent)">${key}</span> — ${summary}`;
-  document.getElementById('issueResult').style.color = 'var(--text)';
-}
-
-function getPersonalToken(){
-  return getCookie('jira_token') || localStorage.getItem('jira_token_bk') || null;
-}
-
-function parseTime(str){
-  // Accepts: "8h 30m", "1h30m", "1.5h", "1,5h", "45m", "8h", "3.5", "3,5"
-  // NOTE: "1,30" is ambiguous — treated as 1h 30m (Spanish notation)
-  str = str.trim().toLowerCase();
-  let secs = 0;
-
-  // If contains 'h' or 'm' — parse normally
-  const hMatch = str.match(/(\d+[.,]?\d*)h/);
-  const mMatch = str.match(/(\d+)m/);
-
-  if(hMatch || mMatch) {
-    if(hMatch) secs += parseFloat(hMatch[1].replace(',','.')) * 3600;
-    if(mMatch) secs += parseInt(mMatch[1]) * 60;
-    return Math.round(secs);
+    personWorklogs[displayName] = { totalSecs, dailyMap, email: userEmail };
   }
 
-  // No h/m — try to interpret as hours
-  // If has comma/dot: treat as decimal hours (3,5 = 3.5h = 3h30m)
-  if(str.includes(',') || str.includes('.')) {
-    const n = parseFloat(str.replace(',','.'));
-    if(!isNaN(n)) return Math.round(n * 3600);
-  }
-
-  // Plain integer — treat as hours
-  const n = parseInt(str);
-  if(!isNaN(n)) return n * 3600;
-
-  return 0;
+  return { personWorklogs };
 }
 
-let selectedIssueKey = null;
+// ── Handler principal ─────────────────────────────────────────────────────
+module.exports = async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-async function searchIssue(){
-  const q = document.getElementById('issueSearch').value.trim();
-  if(!q) return;
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
-  document.getElementById('issueResult').textContent = 'Buscando...';
-  document.getElementById('issueResult').style.color = 'var(--muted)';
+  const action = req.query.action;
 
   try {
-    // Use Vercel proxy to avoid CORS
-    const params = new URLSearchParams({ action: 'findIssue', q });
-    const r = await fetch(`/api/worklogs?${params}`);
-    if(!r.ok) throw new Error('Issue no encontrado');
-    const d = await r.json();
-    selectedIssueKey = d.key;
-    document.getElementById('issueResult').innerHTML = `<span style="color:var(--accent)">${d.key}</span> — ${d.summary}`;
-    document.getElementById('issueResult').style.color = 'var(--text)';
-  } catch(e) {
-    document.getElementById('issueResult').textContent = '✗ ' + e.message;
-    document.getElementById('issueResult').style.color = 'var(--red)';
-    selectedIssueKey = null;
-  }
-}
+    // Acciones POST que no necesitan auth de Jira directa
+    if (req.method === 'POST') {
+      const body = req.body || {};
 
-async function logWork(){
-  const token = getPersonalToken();
-  if(!token){ssLog('⚠ Inicia sesión primero con tu email y PIN','error');return;}
-  if(!selectedIssueKey){ssLog('⚠ Busca y selecciona un issue primero','error');return;}
+      if (action === 'saveCredentials') {
+        const result = await saveCredentials(body);
+        return res.status(result.error ? 400 : 200).json(result);
+      }
 
-  const timeStr = document.getElementById('logTime').value.trim();
-  const date = document.getElementById('logDate').value;
-  const comment = document.getElementById('logComment').value.trim();
+      if (action === 'login') {
+        const result = await login(body);
+        return res.status(result.error ? 401 : 200).json(result);
+      }
 
-  if(!timeStr){ssLog('⚠ Introduce el tiempo a registrar','error');return;}
-  if(!date){ssLog('⚠ Selecciona una fecha','error');return;}
+      if (action === 'logWork') {
+        const result = await logWork(body);
+        return res.status(result.error ? 400 : 200).json(result);
+      }
 
-  const secs = parseTime(timeStr);
-  if(secs < 60){ssLog('⚠ El tiempo mínimo es 1 minuto','error');return;}
-
-  ssLog('⏳ Registrando...','loading');
-
-  try {
-    // Pass through Vercel proxy to avoid CORS
-    const r = await fetch('/api/worklogs?action=logWork', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        issueKey: selectedIssueKey,
-        timeSpentSeconds: secs,
-        date,
-        comment,
-        userEmail: logUserEmail,
-        userToken: token
-      })
-    });
-    if(!r.ok){
-      const e = await r.json();
-      throw new Error(e.error || e.errorMessages?.[0] || `Error ${r.status}`);
+      return res.status(400).json({ error: 'Acción POST desconocida' });
     }
-    ssLog(`✓ ${timeStr} registrado en ${selectedIssueKey}`, 'success');
-    addRecentLog(selectedIssueKey, timeStr, date, comment);
-    document.getElementById('logTime').value='';
-    document.getElementById('logComment').value='';
-  } catch(e){
-    ssLog('✗ ' + e.message, 'error');
+
+    // Acciones GET — necesitan credenciales de Jira
+    // Obtenerlas desde Upstash usando el email del query o de la sesión
+    const userParam = req.query.user || req.query.userEmail;
+    if (!userParam) return res.status(401).json({ error: 'Falta parámetro user' });
+
+    const record = await kvGet(`wl:${userParam.toLowerCase()}`);
+    if (!record) return res.status(401).json({ error: 'Usuario no autenticado' });
+
+    const { email: authEmail, token: authToken } = record;
+
+    if (action === 'personal') {
+      const result = await getPersonalWorklogs(req.query, authEmail, authToken);
+      return res.status(result.error ? 400 : 200).json(result);
+    }
+
+    if (action === 'findIssue') {
+      const result = await findIssue(req.query, authEmail, authToken);
+      return res.status(200).json(result);
+    }
+
+    if (action === 'searchByPerson') {
+      const result = await searchByPerson(req.query, authEmail, authToken);
+      return res.status(result.error ? 400 : 200).json(result);
+    }
+
+    return res.status(400).json({ error: 'Acción desconocida' });
+
+  } catch (err) {
+    console.error('worklogs handler error:', err);
+    return res.status(500).json({ error: err.message || 'Error interno' });
   }
-}
-
-function ssLog(msg, type){
-  const el = document.getElementById('logStatus');
-  el.textContent = msg;
-  el.style.display = 'block';
-  el.style.background = 'var(--surface2)';
-  el.style.color = type==='error'?'var(--red)':type==='loading'?'var(--accent)':'var(--green)';
-}
-
-const recentLogs = [];
-function addRecentLog(issue, time, date, comment){
-  recentLogs.unshift({issue, time, date, comment});
-  const el = document.getElementById('recentLogs');
-  const list = document.getElementById('recentLogsList');
-  el.style.display = 'block';
-  list.innerHTML = recentLogs.slice(0,5).map(l=>`
-    <div style="display:flex;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.85rem;">
-      <span style="font-family:var(--mono);color:var(--accent)">${l.issue}</span>
-      <span style="font-family:var(--mono);color:var(--green)">${l.time}</span>
-      <span style="color:var(--muted)">${l.date}</span>
-      ${l.comment?`<span style="color:var(--text)">${l.comment}</span>`:''}
-    </div>
-  `).join('');
-}
-
-// ── Date init ───────────────────────────────────
-const now=new Date(),y=now.getFullYear(),mo=String(now.getMonth()+1).padStart(2,'0');
-document.getElementById('dateFrom').value=`${y}-${mo}-01`;
-const last=new Date(y,now.getMonth()+1,0).getDate();
-document.getElementById('dateTo').value=`${y}-${mo}-${String(last).padStart(2,'0')}`;
-// Init personal dates too
-setRangeP('thisMonth');
-
-// Pre-fill email in Mi Tiempo from saved credentials
-window.addEventListener('DOMContentLoaded', ()=>{
-  const savedEmail = sessionStorage.getItem('jira_email') || localStorage.getItem('jira_email_bk');
-  if(savedEmail){
-    const jiraUserEl = document.getElementById('jiraUser');
-    if(jiraUserEl) jiraUserEl.value = savedEmail;
-  }
-  // Set today's date in log form
-  const logDateEl = document.getElementById('logDate');
-  if(logDateEl){
-    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-    logDateEl.value = today;
-  }
-  // Restore token status on page load
-  checkTokenStatus();
-});
-
-let gData=[],gDaily={};
-let selectedGroups=new Set();
-let selectedProjs=new Set();
-
-const ALL_PROJECTS=["EDUS3", "EDUS2", "EDUTEC", "TEFAC", "TEFAM", "TELOOIFP", "ESCUELAMOB", "TECHLCD", "TEEDUGL", "TEEVES2", "TEEVFLEX", "TEEVOBISME", "TEXTRAESCO", "TEKINEOX", "TELOMLOE", "TESEGSME", "TEGA4", "TEDISSME", "TESECVIR", "TETRACH", "TE", "TESOP", "TES3", "TECLIMAEM", "ESCP"];
-const ALL_GROUPS=["Educamos_Operaciones","Educamos_Producto_Global","Educamos_Gestión_Economica","Educamos_Comunicaciones_yMovilidad","Educamos_Gestión_Académica","Educamos_Gerentes","Educamos_Externos","Educamos_Soporte","Educamos_Producto_España","Educamos_Producto_Mexico","Educamos_Producto_Chile","Educamos_Producto_Argentina"];
-
-// Init project dropdown
-function initProjs(){
-  const list=document.getElementById('projList');
-  list.innerHTML=ALL_PROJECTS.map(p=>`
-    <label style="display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border);">
-      <input type="checkbox" class="proj-chk" value="${p}" onchange="updateProjSelection()" style="accent-color:var(--accent)">
-      <span style="font-family:var(--mono)">${p}</span>
-    </label>
-  `).join('');
-  document.getElementById('projSelectorBtn')?.addEventListener('click', toggleProjs);
-  document.getElementById('projAllChk')?.addEventListener('change', function(){toggleAllProjs(this);});
-}
-
-function toggleProjs(){
-  const d=document.getElementById('projDropdown');
-  d.style.display=d.style.display==='none'?'block':'none';
-}
-
-function toggleAllProjs(cb){
-  document.querySelectorAll('.proj-chk').forEach(c=>c.checked=cb.checked);
-  updateProjSelection();
-}
-
-function updateProjSelection(){
-  selectedProjs=new Set([...document.querySelectorAll('.proj-chk:checked')].map(c=>c.value));
-  const allCb=document.getElementById('proj-all');
-  const total=document.querySelectorAll('.proj-chk').length;
-  allCb.checked=selectedProjs.size===total&&total>0;
-  document.getElementById('projLabel').textContent=
-    selectedProjs.size===0?'Todos los proyectos':
-    selectedProjs.size===1?[...selectedProjs][0]:
-    `${selectedProjs.size} proyectos seleccionados`;
-}
-
-// Init group dropdown
-function initGroups(){
-  const list=document.getElementById('groupList');
-  list.innerHTML=ALL_GROUPS.map(g=>`
-    <label style="display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border);">
-      <input type="checkbox" class="grp-chk" value="${g}" onchange="updateGroupSelection()" style="accent-color:var(--accent)">
-      <span>${g}</span>
-    </label>
-  `).join('');
-  document.getElementById('groupSelectorBtn')?.addEventListener('click', toggleGroups);
-  document.getElementById('grpAllChk')?.addEventListener('change', function(){toggleAllGroups(this);});
-}
-
-function toggleGroups(){
-  const d=document.getElementById('groupDropdown');
-  d.style.display=d.style.display==='none'?'block':'none';
-}
-
-function toggleAllGroups(cb){
-  document.querySelectorAll('.grp-chk').forEach(c=>c.checked=cb.checked);
-  updateGroupSelection();
-}
-
-function updateGroupSelection(){
-  selectedGroups=new Set([...document.querySelectorAll('.grp-chk:checked')].map(c=>c.value));
-  const allCb=document.getElementById('grp-all');
-  const total=document.querySelectorAll('.grp-chk').length;
-  allCb.checked=selectedGroups.size===total&&total>0;
-  document.getElementById('groupLabel').textContent=
-    selectedGroups.size===0?'Todos los equipos':
-    selectedGroups.size===1?[...selectedGroups][0]:
-    `${selectedGroups.size} equipos seleccionados`;
-}
-
-// Close dropdowns when clicking outside
-document.addEventListener('click',e=>{
-  const ps=document.getElementById('projSelector');
-  const pd=document.getElementById('projDropdown');
-  const gs=document.getElementById('groupSelector');
-  const gd=document.getElementById('groupDropdown');
-  if(pd&&ps&&!ps.contains(e.target)&&!pd.contains(e.target)) pd.style.display='none';
-  if(gd&&gs&&!gs.contains(e.target)&&!gd.contains(e.target)) gd.style.display='none';
-});
-
-initProjs();
-initGroups();
-// Nothing selected by default — user picks manually
-
-function setRange(type){
-  const now=new Date();
-  let from,to;
-  document.querySelectorAll('.range-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('rb-'+type)?.classList.add('active');
-  if(type==='thisMonth'){
-    from=new Date(now.getFullYear(),now.getMonth(),1);
-    to=new Date(now.getFullYear(),now.getMonth()+1,0);
-  } else if(type==='lastMonth'){
-    from=new Date(now.getFullYear(),now.getMonth()-1,1);
-    to=new Date(now.getFullYear(),now.getMonth(),0);
-  } else if(type==='thisWeek'){
-    const day=now.getDay()||7;
-    from=new Date(now);from.setDate(now.getDate()-day+1);
-    to=new Date(from);to.setDate(from.getDate()+6);
-  } else if(type==='lastWeek'){
-    const day=now.getDay()||7;
-    from=new Date(now);from.setDate(now.getDate()-day-6);
-    to=new Date(now);to.setDate(now.getDate()-day);
-  } else if(type==='last30'){
-    from=new Date(now);from.setDate(now.getDate()-29);
-    to=new Date(now);
-  }
-  const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  document.getElementById('dateFrom').value=fmt(from);
-  document.getElementById('dateTo').value=fmt(to);
-}
-
-function ss(msg,t){const e=document.getElementById('status');e.textContent=msg;e.className=t}
-function sH(s){return(s/3600).toFixed(1)+'h'}
-function ini(n){return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
-function hc(s){const c=['#4f6ef7','#7c3aed','#0ea5e9','#10b981','#f59e0b','#ef4444','#ec4899','#06b6d4'];let h=0;for(let x of s)h=(h*31+x.charCodeAt(0))%c.length;return c[h]}
-
-async function apiCall(params) {
-  const qs = new URLSearchParams(params).toString();
-  const r = await fetch(`/api/worklogs?${qs}`);
-  if (!r.ok) {
-    const e = await r.json().catch(()=>({}));
-    throw new Error(e.error || `Error ${r.status}`);
-  }
-  return r.json();
-}
-
-async function run(){
-  const projs=[...selectedProjs];
-  const df=document.getElementById('dateFrom').value;
-  const dt=document.getElementById('dateTo').value;
-  const dh=parseFloat(document.getElementById('dailyHours').value);
-  if(!df||!dt){ss('⚠ Indica las fechas','error');return;}
-  if(selectedGroups.size===0){ss('⚠ Selecciona al menos un equipo','error');return;}
-
-  const btn=document.querySelector('#pane-manager .btn');
-  btn.disabled=true;
-  ss('⏳ Obteniendo miembros del equipo...','loading');
-  document.getElementById('results').style.display='none';
-
-  try{
-    const params=new URLSearchParams({
-      action:'searchByPerson',
-      groups:[...selectedGroups].join(','),
-      dateFrom:df,
-      dateTo:dt
-    });
-    if(projs.length) params.append('project', projs.join(','));
-
-    ss('⏳ Consultando worklogs por persona...','loading');
-    const r=await fetch(`/api/worklogs?${params}`);
-    if(!r.ok) throw new Error(`Error ${r.status}`);
-    const data=await r.json();
-
-    const personWorklogs=data.personWorklogs||{};
-    ss(`⏳ Procesando ${Object.keys(personWorklogs).length} personas...`,'loading');
-
-    // Build gData and gDaily from personWorklogs
-    let wdays=0;
-    const dc=new Date(df+'T00:00:00'),dte=new Date(dt+'T00:00:00');
-    const dcopy=new Date(dc);
-    while(dcopy<=dte){if(dcopy.getDay()!==0&&dcopy.getDay()!==6)wdays++;dcopy.setDate(dcopy.getDate()+1);}
-    const ttgt=wdays*dh*3600;
-
-    gData=Object.entries(personWorklogs).map(([name,d])=>{
-      const days=Object.keys(d.dailyMap).length;
-      const avg=days?d.totalSecs/days:0;
-      const pct=ttgt?Math.round(d.totalSecs/ttgt*100):0;
-      return{name,secs:d.totalSecs,days,avg,pct,issues:0};
-    }).sort((a,b)=>b.secs-a.secs);
-
-    gDaily={};
-    Object.entries(personWorklogs).forEach(([name,d])=>{gDaily[name]=d.dailyMap;});
-
-    renderStats(gData, Object.keys(personWorklogs).length);
-    renderTable(gData,dh);
-    renderDaily(gDaily,dh*3600);
-    document.getElementById('results').style.display='block';
-    ss(`✓ ${gData.length} personas encontradas`,'success');
-
-  }catch(err){ss(`✗ ${err.message}`,'error');}
-  btn.disabled=false;
-}
-
-function renderStats(d,ti){
-  const th=(d.reduce((s,r)=>s+r.secs,0)/3600).toFixed(1);
-  const ap=d.length?Math.round(d.reduce((s,r)=>s+r.pct,0)/d.length):0;
-  document.getElementById('s1').textContent=d.length;
-  document.getElementById('s2').textContent=th+'h';
-  document.getElementById('s3').textContent=ti;
-  document.getElementById('s4').textContent=ap+'%';
-}
-
-function renderTable(data,dh){
-  // Table removed — data shown in daily grid only
-}
-
-function renderDaily(dm,dtgt){
-  const el=document.getElementById('daily');
-  const ps=Object.keys(dm).sort();
-  if(!ps.length){el.innerHTML='<p style="color:var(--muted);font-size:.85rem">Sin datos</p>';return;}
-
-  // Build full date range from dateFrom to dateTo
-  const df=document.getElementById('dateFrom').value;
-  const dt=document.getElementById('dateTo').value;
-  const allDates=[];
-  const cur=new Date(df+'T00:00:00');
-  const end=new Date(dt+'T00:00:00');
-  while(cur<=end){allDates.push(cur.toISOString().split('T')[0]);cur.setDate(cur.getDate()+1);}
-
-  const dow=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  const dowShort=['D','L','M','X','J','V','S'];
-
-  const thead=`<thead><tr>
-    <th>Usuario</th>
-    <th class="total-col">Registrado</th>
-    ${allDates.map(d=>{
-      const dd=new Date(d+'T00:00:00');
-      const isWE=dd.getDay()===0||dd.getDay()===6;
-      return`<th class="${isWE?'weekend':''}">${dowShort[dd.getDay()]}<br>${d.slice(8)}/${d.slice(5,7)}</th>`;
-    }).join('')}
-  </tr></thead>`;
-
-  const tbody=ps.map(name=>{
-    const total=Object.values(dm[name]).reduce((a,b)=>a+b,0);
-    const col=hc(name);
-    const cells=allDates.map(d=>{
-      const dd=new Date(d+'T00:00:00');
-      const isWE=dd.getDay()===0||dd.getDay()===6;
-      const isWork=!isWE;
-      const s=dm[name]?.[d]||0;
-      if(isWE) return`<td class="weekend">${s>0?((s/3600).toFixed(1)+'h'):''}</td>`;
-      if(!s) return`<td class="empty-work">—</td>`;
-      const h=(s/3600).toFixed(1);
-      let cls='ok';
-      if(s<dtgt*.5)cls='low';
-      else if(s<dtgt*.85)cls='partial';
-      return`<td class="${cls}">${h}</td>`;
-    }).join('');
-    return`<tr>
-      <td><div class="pcell"><div class="avatar" style="background:${col};width:24px;height:24px;font-size:.65rem">${ini(name)}</div><span style="font-size:.82rem">${name}</span></div></td>
-      <td class="total-col" style="font-weight:600">${(total/3600).toFixed(1)}h</td>
-      ${cells}
-    </tr>`;
-  }).join('');
-
-  el.innerHTML=`<table class="dtable">${thead}<tbody>${tbody}</tbody></table>`;
-}
-
-function toggleD(){const e=document.getElementById('daily');e.style.display=e.style.display==='none'?'':'none';}
-
-function exportCSV(){
-  if(!gData.length)return;
-  const rows=[['Persona','Días','Horas totales','Media diaria','% Objetivo','Issues']];
-  gData.forEach(r=>rows.push([r.name,r.days,(r.secs/3600).toFixed(1),(r.avg/3600).toFixed(1),r.pct+'%',r.issues]));
-  const blob=new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='worklogs.csv';a.click();
-}
-</script>
-</body>
-</html>
+};
