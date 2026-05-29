@@ -494,7 +494,7 @@ async function loadImputarContext(){
           return`<td style="background:rgba(236,30,121,.12);color:#f06292;">${(s/3600).toFixed(1)}</td>`;
         }).join('');
         return`<tr>
-          <td onclick="selectRecentIssue('${k}','${(d.summary||k).replace(/'/g,"\\'")}');" style="color:var(--accent);cursor:pointer;font-family:var(--mono);font-size:.78rem;">${k}</td>
+          <td onclick="openQuickLog('${k}','${(d.summary||k).replace(/'/g,"\\'")}');" style="color:var(--accent);cursor:pointer;font-family:var(--mono);font-size:.78rem;">${k}</td>
           <td style="font-size:.78rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${short}</td>
           <td class="total-col">${(d.total/3600).toFixed(1)}h</td>${cells}
         </tr>`;
@@ -847,6 +847,69 @@ function exportMgCSV(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='managers.csv';a.click();
 }
 
+
+// Quick Log Modal
+let quickLogIssueKey = null;
+function openQuickLog(key, summary){
+  quickLogIssueKey = key;
+  document.getElementById('quickLogIssue').innerHTML = '<span style="font-family:var(--mono);color:var(--accent);font-weight:600;">' + key + '</span> - ' + (summary || key);
+  const now = new Date();
+  document.getElementById('quickLogDate').value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  document.getElementById('quickLogTime').value = '';
+  document.getElementById('quickLogComment').value = '';
+  document.getElementById('quickLogStatus').style.display = 'none';
+  document.getElementById('quickLogModal').style.display = 'flex';
+  setTimeout(function(){document.getElementById('quickLogTime').focus();}, 100);
+}
+function closeQuickLog(){
+  document.getElementById('quickLogModal').style.display = 'none';
+  quickLogIssueKey = null;
+}
+function ssQuick(msg, type){
+  const el = document.getElementById('quickLogStatus');
+  el.textContent = msg; el.style.display = 'block';
+  el.style.color = type==='error' ? 'var(--red)' : type==='loading' ? 'var(--accent)' : 'var(--green)';
+}
+async function submitQuickLog(){
+  const token = getPersonalToken();
+  if(!token){ ssQuick('Inicia sesion primero', 'error'); return; }
+  if(!quickLogIssueKey){ ssQuick('No hay issue seleccionado', 'error'); return; }
+  const timeStr = document.getElementById('quickLogTime').value.trim();
+  const date = document.getElementById('quickLogDate').value;
+  const comment = document.getElementById('quickLogComment').value.trim();
+  if(!timeStr){ ssQuick('Introduce el tiempo', 'error'); return; }
+  if(!date){ ssQuick('Selecciona una fecha', 'error'); return; }
+  const secs = parseTime(timeStr);
+  if(secs === -1){ ssQuick('Formato no valido. Ej: 3h 45m o 1,5h', 'error'); return; }
+  if(secs < 60){ ssQuick('Minimo 1 minuto', 'error'); return; }
+  ssQuick('Registrando...', 'loading');
+  try{
+    const r = await fetch('/api/worklogs?action=logWork', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ issueKey: quickLogIssueKey, timeSpentSeconds: secs, date: date, comment: comment, userEmail: logUserEmail, userToken: token })
+    });
+    if(!r.ok){
+      const e = await r.json().catch(function(){return{};});
+      const errMsg = (e.error||'').toLowerCase();
+      if(r.status===401 || errMsg.includes('unauthorized') || errMsg.includes('auth')){
+        ssQuick('Token caducado. Cierra sesion y vuelve a registrarte.', 'error');
+        return;
+      }
+      throw new Error(e.error || ('Error ' + r.status));
+    }
+    ssQuick(timeStr + ' registrado en ' + quickLogIssueKey, 'success');
+    recentLogs.unshift({issue: quickLogIssueKey, time: timeStr, date: date, comment: comment});
+    const el = document.getElementById('recentLogs'), list = document.getElementById('recentLogsList');
+    if(el){
+      el.style.display = 'block';
+      list.innerHTML = recentLogs.slice(0,5).map(function(l){
+        return '<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.85rem;"><span style="font-family:var(--mono);color:var(--accent)">' + l.issue + '</span><span style="font-family:var(--mono);color:var(--green)">' + l.time + '</span><span style="color:var(--muted)">' + l.date + '</span>' + (l.comment?'<span>'+l.comment+'</span>':'') + '</div>';
+      }).join('');
+    }
+    setTimeout(function(){ closeQuickLog(); loadImputarContext(); }, 1200);
+  }catch(e){ ssQuick(e.message, 'error'); }
+}
+
 // ── Theme toggle ─────────────────────────────
 function toggleTheme(){
   const cur = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -893,7 +956,45 @@ window.addEventListener('DOMContentLoaded', ()=>{
   // Sesión y tab por defecto
   checkTokenStatus();
   switchTab('imputar');
+  // Cerrar modal al click en overlay
+  const qm = document.getElementById('quickLogModal');
+  if(qm) qm.addEventListener('click', function(e){ if(e.target.id === 'quickLogModal') closeQuickLog(); });
+  // Cerrar modal con Escape
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && qm && qm.style.display === 'flex') closeQuickLog();
+  });
 });
 </script>
+
+<!-- Modal imputacion rapida -->
+<div id="quickLogModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <div class="card-title" style="margin:0;">Imputar tiempo</div>
+      <button onclick="closeQuickLog()" style="background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;line-height:1;padding:4px 8px;">x</button>
+    </div>
+    <div id="quickLogIssue" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:.85rem;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.8rem;">
+      <div>
+        <span class="field-label">Fecha</span>
+        <input type="date" id="quickLogDate" style="width:100%;">
+      </div>
+      <div>
+        <span class="field-label">Tiempo</span>
+        <input type="text" id="quickLogTime" placeholder="ej: 2h 30m" style="width:100%;">
+      </div>
+    </div>
+    <div style="margin-bottom:1rem;">
+      <span class="field-label">Comentario (opcional)</span>
+      <input type="text" id="quickLogComment" placeholder="Descripcion del trabajo..." style="width:100%;">
+    </div>
+    <div style="display:flex;gap:.8rem;align-items:center;">
+      <button class="btn" onclick="submitQuickLog()" style="padding:10px 22px;">Registrar</button>
+      <button class="btn btn-sec" onclick="closeQuickLog()" style="padding:10px 18px;">Cancelar</button>
+      <div id="quickLogStatus" style="font-family:var(--mono);font-size:.8rem;display:none;padding:6px 12px;border-radius:6px;flex:1;"></div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
