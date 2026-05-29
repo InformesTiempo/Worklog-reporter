@@ -10,8 +10,8 @@
   :root{--accent:#ec1e79;--accent2:#ffd93d;--grad2:#7c3aed;--green:#5ed4cf;--red:#ef4444;--yellow:#ffd93d;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
   /* Modo oscuro — Opción A: vibrante violáceo */
   :root[data-theme="dark"]{--bg:#15101a;--surface:#1f1828;--surface2:#2b2236;--border:#3d2f4a;--text:#f5f0fa;--muted:#9c8aab}
-  /* Modo claro — Opción C: light minimalista */
-  :root[data-theme="light"]{--bg:#fafafa;--surface:#ffffff;--surface2:#f4f1f7;--border:#d4cad9;--text:#1a0f1d;--muted:#4a3e54;--green:#0d8a85}
+  /* Modo claro — P2 cálido cream con textos oscuros */
+  :root[data-theme="light"]{--bg:#fbf8f5;--surface:#ffffff;--surface2:#f5ede8;--border:#d4cad9;--text:#1a0f1d;--muted:#4a3e54;--green:#0d8a85}
   /* Botón toggle tema */
   .theme-toggle{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 14px;font-family:var(--mono);font-size:.78rem;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
   .theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
@@ -156,17 +156,18 @@
         </div>
       </div>
       <div id="register-form" style="display:none;">
-        <div style="font-size:.8rem;color:var(--text);margin-bottom:8px;font-family:var(--mono);">Registro — solo la primera vez</div>
+        <div style="font-size:.9rem;color:var(--text);margin-bottom:10px;font-family:var(--mono);font-weight:600;">Registro — solo la primera vez</div>
+        <div style="background:rgba(236,30,121,.08);border:1px solid rgba(236,30,121,.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:.85rem;line-height:1.6;">
+          📌 <strong>¿No tienes API token todavía?</strong><br>
+          Genera el tuyo en <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" style="color:var(--accent);font-weight:700;text-decoration:underline;">id.atlassian.com/manage-profile/security/api-tokens</a> → botón "Create API token" → cópialo y pégalo abajo.
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
           <input type="email" id="regEmail" placeholder="Tu email de Jira" style="width:100%;">
-          <input type="text" id="regToken" placeholder="Tu API token de Jira" autocomplete="off" style="width:100%;">
+          <input type="text" id="regToken" placeholder="Pega aquí tu API token" autocomplete="off" style="width:100%;">
         </div>
         <div style="display:flex;gap:8px;">
           <button onclick="doRegister()" class="btn" style="padding:8px 16px;font-size:.82rem;">Guardar y entrar</button>
           <button onclick="showLogin()" class="btn btn-sec" style="padding:8px 16px;font-size:.82rem;">Cancelar</button>
-        </div>
-        <div style="font-size:.72rem;color:var(--muted);margin-top:6px;">
-          Token en <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" style="color:var(--accent);">id.atlassian.com</a>
         </div>
       </div>
       <div id="logout-bar" style="display:none;margin-top:8px;">
