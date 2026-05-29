@@ -218,7 +218,13 @@
   </div>
 
   <div class="card" id="imputar-detail" style="display:none;">
-    <div class="card-title">📋 Detalle del mes</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.6rem;">
+      <div class="card-title" id="imputar-detail-title" style="margin:0;">📋 Detalle del mes</div>
+      <div style="display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;">
+        <button id="view-month" onclick="setDetailView('month')" class="view-btn active-view" style="padding:5px 12px;border:none;border-radius:5px;cursor:pointer;font-family:var(--mono);font-size:.75rem;background:linear-gradient(135deg,var(--accent),var(--grad2));color:#fff;">📅 Mes</button>
+        <button id="view-week" onclick="setDetailView('week')" class="view-btn" style="padding:5px 12px;border:none;border-radius:5px;cursor:pointer;font-family:var(--mono);font-size:.75rem;background:transparent;color:var(--muted);">📆 Semana</button>
+      </div>
+    </div>
     <div style="overflow-x:auto;">
       <table id="imputar-detail-table" class="dtable"></table>
     </div>
@@ -427,12 +433,46 @@ async function doLogin(){
 }
 
 // ── Imputar context ────────────────────────────
+// ── Vista de detalle (mes/semana) ──────────
+let detailView = 'month'; // 'month' o 'week'
+function setDetailView(v){
+  detailView = v;
+  // Actualizar botones
+  const mb = document.getElementById('view-month');
+  const wb = document.getElementById('view-week');
+  if(v==='month'){
+    mb.style.background = 'linear-gradient(135deg,var(--accent),var(--grad2))';
+    mb.style.color = '#fff';
+    wb.style.background = 'transparent';
+    wb.style.color = 'var(--muted)';
+    document.getElementById('imputar-detail-title').textContent = '📋 Detalle del mes';
+  } else {
+    wb.style.background = 'linear-gradient(135deg,var(--accent),var(--grad2))';
+    wb.style.color = '#fff';
+    mb.style.background = 'transparent';
+    mb.style.color = 'var(--muted)';
+    document.getElementById('imputar-detail-title').textContent = '📋 Detalle de la semana';
+  }
+  // Recargar tabla con el nuevo rango
+  loadImputarContext();
+}
+
 async function loadImputarContext(){
   const token=getPersonalToken();
   if(!token||!logUserEmail) return;
   const now=new Date(), fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const from=new Date(now.getFullYear(),now.getMonth(),1);
-  const df=fmt(from), dt=fmt(now);
+  let from, to;
+  if(detailView === 'week'){
+    // Semana en curso: lunes a domingo
+    const day = now.getDay() || 7;
+    from = new Date(now); from.setDate(now.getDate() - day + 1);
+    to = new Date(from); to.setDate(from.getDate() + 6);
+  } else {
+    // Mes completo
+    from = new Date(now.getFullYear(), now.getMonth(), 1);
+    to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  }
+  const df=fmt(from), dt=fmt(to);
   try{
     const params=new URLSearchParams({action:'personal',user:logUserEmail,dateFrom:df,dateTo:dt,userToken:token});
     const r=await fetch(`/api/worklogs?${params}`);
@@ -456,19 +496,25 @@ async function loadImputarContext(){
         <span style="font-family:var(--mono);color:var(--accent);margin-right:6px">${k}</span>${short}
       </button>`;
     }).join('') : '<span style="font-size:.8rem;color:var(--muted)">Sin imputaciones este mes</span>';
-    // Resumen mes
+    // Resumen del periodo
     const total=Object.values(dailyMap).reduce((a,b)=>a+b,0);
     const dias=Object.keys(dailyMap).length;
-    const mes=from.toLocaleString('es-ES',{month:'long',year:'numeric'});
+    let periodoLabel;
+    if(detailView === 'week'){
+      periodoLabel = `Semana ${df.slice(8)}/${df.slice(5,7)} - ${dt.slice(8)}/${dt.slice(5,7)}`;
+    } else {
+      periodoLabel = from.toLocaleString('es-ES',{month:'long',year:'numeric'});
+    }
+    const periodoTitulo = detailView === 'week' ? 'Semana' : 'Mes';
     document.getElementById('weekly-summary').innerHTML=`
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;display:flex;gap:24px;flex-wrap:wrap;">
-        <div><div style="font-family:var(--mono);font-size:.7rem;color:var(--muted);text-transform:uppercase">Mes</div><div style="font-family:var(--mono);font-weight:600;text-transform:capitalize">${mes}</div></div>
+        <div><div style="font-family:var(--mono);font-size:.7rem;color:var(--muted);text-transform:uppercase">${periodoTitulo}</div><div style="font-family:var(--mono);font-weight:600;text-transform:capitalize">${periodoLabel}</div></div>
         <div><div style="font-family:var(--mono);font-size:.7rem;color:var(--muted);text-transform:uppercase">Total horas</div><div style="font-family:var(--mono);font-weight:600;color:var(--green)">${(total/3600).toFixed(1)}h</div></div>
         <div><div style="font-family:var(--mono);font-size:.7rem;color:var(--muted);text-transform:uppercase">Días imputados</div><div style="font-family:var(--mono);font-weight:600;color:var(--accent)">${dias}</div></div>
       </div>`;
     // Tabla detalle
-    const days=[], cur=new Date(from);
-    while(cur<=now){days.push(fmt(cur));cur.setDate(cur.getDate()+1);}
+    const days=[], cur=new Date(from), endDate=new Date(to);
+    while(cur<=endDate){days.push(fmt(cur));cur.setDate(cur.getDate()+1);}
     const dow=['D','L','M','X','J','V','S'];
     const issueDayMap={};
     for(const wl of wls){
